@@ -4,111 +4,128 @@ import "core:fmt"
 import sto "core:strconv"
 import "core:strings"
 
-CvarType :: enum { Bool, Int, Float, String }
+cvarType :: enum { bool, int, float, string }
 
-CvarValue :: union {
+cvarValue :: union {
     bool,
     int,
     f32,
     string,
 }
 
-Cvar :: struct {
+cvar :: struct {
     name: string,
-    type: CvarType,
-    value: CvarValue,
-    defaultValue: CvarValue,
+    type: cvarType,
+    value: cvarValue,
+    defaultValue: cvarValue,
     description: string, // Optional: for help/info
     flags: u32,          // Flags for read-only, cheats, etc.
 }
 
-Command :: struct {
+command :: struct {
     name: string,
     description: string, // Optional: for help/info
     execute: proc(args: []string),
+    argsCount: u32,     // Number of arguments this command expects
 }
 
-CvarRegistry :: struct {
-    cvars: map[string]Cvar,
-    commands: map[string]Command, // Command name to Command object
+Registry :: struct {
+    cvars: map[string]cvar,
+    commands: map[string]command, // Command name to Command object
 }
 
-RegisterCvar :: proc(registry: ^CvarRegistry, name: string, type: CvarType, default_value, description: string) {
-    cvar := Cvar{
+cvarRegistry := Registry{}
+
+registerCvar :: proc(name: string, type: cvarType, default_value, description: string) {
+    cvar := cvar{
         name = name,
         type = type,
         value = default_value,
         defaultValue = default_value,
         description = description,
     };
-    registry.cvars[name] = cvar;
+    cvarRegistry.cvars[name] = cvar;
     fmt.println("Registered cvar: {}", name);
 }
 
-SetCvar :: proc(registry: ^CvarRegistry, name: string, value: string) {
-    cvar, found := registry.cvars[name];
+setCvar :: proc(name: string, value: string) {
+    cvar, found := cvarRegistry.cvars[name];
     if !found {
         fmt.println("Error: Cvar '{name}' not found.");
         return;
     }
     switch cvar.type {
-    case CvarType.Bool:
+    case cvarType.bool:
         val, err := sto.parse_bool(value);
-        if err!=true {
-            cvar.value=val;
+        if err != true {
+            cvar.value = val;
         }
         else {
-            fmt.println("Invalid value for cvar '%s': '%s', expected: boolean", cvar.name, value);
+            fmt.println("Invalid value for cvar '", cvar.name, "': '", value, "', expected: boolean");
             cvar.value = cvar.defaultValue;
         }
-    case CvarType.Float:
+    case cvarType.float:
         val, err := sto.parse_f32(value, nil);
-        if err!=true {
+        if err != true {
             cvar.value = val;
         } else {
-            fmt.println("Invalid value for cvar '%s': '%s', expected: float", cvar.name, value);
+            fmt.println("Invalid value for cvar '", cvar.name, "': '", value, "', expected: float");
             cvar.value = cvar.defaultValue;
         }
-    case CvarType.Int:
+    case cvarType.int:
         val, err := sto.parse_int(value);
-        if err!=true {
+        if err != true {
             cvar.value = val;
         } else {
-            fmt.println("Invalid value for cvar '%s': '%s', expected: integer", cvar.name, value);
+            fmt.println("Invalid value for cvar '", cvar.name, "': '", value, "', expected: integer");
             cvar.value = cvar.defaultValue;
         }
-    case CvarType.String:
+    case cvarType.string:
         cvar.value = value;
     
     }
 }
 
-GetCvar :: proc(registry: ^CvarRegistry, name: string) -> ^Cvar {
-    if !(name in registry.cvars) {
+getCvar :: proc(name: string) -> ^cvar {
+    if !(name in cvarRegistry.cvars) {
         return nil;
     }
-    return &registry.cvars[name];
+    return &cvarRegistry.cvars[name];
 }
 
-RegisterCommand :: proc(registry: ^CvarRegistry, name: string, execute: proc(args: []string), description: string) {
-    command := Command{
+registerCommand :: proc(name: string, execute: proc(args: []string), description: string, argsCount: u32) {
+    command := command{
         name = name,
         execute = execute,
         description = description,
+        argsCount = argsCount,
     };
-    registry.commands[name] = command;
+    cvarRegistry.commands[name] = command;
     fmt.println("Registered command: {}", name);
 }
 
-ExecuteCommand :: proc(registry: ^CvarRegistry, input: string) {
+executeCommand :: proc(input: string) {
     tokens := strings.split(input, " "); // Split input into command and args
-    command_name := tokens[0];
+    commandName := tokens[0];
     args := tokens[1:]
-
-    if !(command_name in registry.commands) {
-        fmt.println("Error: Command '%s' not found.", command_name);
+    if !(commandName in cvarRegistry.commands) {
+        fmt.println("Error: Command: ", commandName, " not found.");
         return;
     }
-    command := registry.commands[command_name];
+    command := cvarRegistry.commands[commandName];
+    if len(args) != int(command.argsCount) {
+        fmt.println("Error: Command '", commandName, "' expects ", command.argsCount, " arguments, but got ", len(args), ".");
+        return;
+    }
     command.execute(args);
 }
+
+isCommand :: proc(name: string) -> bool {
+    return name in cvarRegistry.commands;
+}
+
+clearConsole :: proc() {
+    fmt.println("All data cleared from registry.");
+}
+
+

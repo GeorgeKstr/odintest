@@ -1,9 +1,11 @@
-package config
+package console
 
 import "../console"
 import "core:os"
 import "core:fmt"
 import "core:strings"
+
+
 
 parse_file_for_cvars :: proc(filepath: string) {
 	fmt.printf("Attempting to parse file: %s...\n", filepath)
@@ -15,10 +17,13 @@ parse_file_for_cvars :: proc(filepath: string) {
 	defer delete(data, context.allocator)
 
 	it := string(data)
-	for line in strings.split_lines_iterator(&it) {
-		reg : console.CvarRegistry;
-		data := strings.split(line, " ");
-		console.RegisterCvar(&reg, data[0], console.CvarType.String, data[1], "randomvalue");
-		
+	    for line in strings.split_lines_iterator(&it) {
+        data := strings.split(line, " ");
+        if console.isCommand(data[0]) {
+            console.executeCommand(line);
+			fmt.println("Executed command: ", data[0])
+        } else {
+            console.setCvar(data[0], data[1]);
+        }
 	}
 }
