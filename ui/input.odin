@@ -1,9 +1,55 @@
-package input
-
+package ui
 import rl "vendor:raylib"
 import "core:fmt"
 
+handleInput := proc(keyname: string, action: user_action, pressed: bool) {
+    w := windows_head
+    if cursor_enabled {
+        if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonReleased(.LEFT) {
+            if(pressed){
+                w:=hover_window
+                if(w==nil){
+                    return
+                }
+                makeHead(w)
+                if(isPointInsideHeader(mousepos, w)){
+                    if mousepos.x >= w.content_origin.x+w.content_size.x-headersize {
+                        closeWindow(w)
+                        hover_window = nil
+                        return
+                    }
+                    move_mode=true
+                    move_offset=w.content_origin - mousepos
+                    move_offset.y-=headersize
+                }
+                else{
+                    move_mode=false
+                    focused_component = nil
+                    for c:=w.components;c!=nil;c=c.next{
+                        if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
+                            focused_component = c
+                            c.input(c, action, pressed)
+                            break
+                        }
+                    }
+                }
+            }
+            else{
+                move_mode=false
+            }
+        }
+        else{
+            if(focused_component!=nil){
+                focused_component.input(focused_component, action, pressed)
+            }
+        }
+        return;
+    }
+    move_mode=false
+}
+
 user_action::enum{
+    ACTION_NONE,
     ACTION_FIRE,
     ACTION_FORWARD,
     ACTION_BACKWARD,
@@ -47,6 +93,7 @@ key_map := map[string]rl.KeyboardKey{
     "LEFT" = .LEFT,
     "RIGHT" = .RIGHT,
     "ENTER" = .ENTER,
+    "BACKSPACE" = .BACKSPACE,
     "ESCAPE" = .ESCAPE,
     "SPACE" = .SPACE,
     "LALT" = .LEFT_ALT,
@@ -99,6 +146,16 @@ key_map := map[string]rl.KeyboardKey{
     "X" = .X,
     "Y" = .Y,
     "Z" = .Z,
+    "0" = .ZERO,
+    "1" = .ONE,
+    "2" = .TWO,
+    "3" = .THREE,
+    "4" = .FOUR,
+    "5" = .FIVE,
+    "6" = .SIX,
+    "7" = .SEVEN,
+    "8" = .EIGHT,
+    "9" = .NINE,
 }
 
 mouse_button_map := map[string]rl.MouseButton{
@@ -125,21 +182,21 @@ bindKeyToAction := proc(key: string, action: user_action) {
 }
 
 checkMouseButtons := proc() {
-    for button, action in mouse_button_keybinds {
+    for name, button in mouse_button_map {
         if rl.IsMouseButtonPressed(button) {
-            handleInput(action, true)
+            handleInput(name, mouse_button_keybinds[button], true)
         } else if rl.IsMouseButtonReleased(button) {
-            handleInput(action, false)
+            handleInput(name, mouse_button_keybinds[button], false)
         }
     }
 }
 
 checkKeyboard := proc() {
-    for key, action in button_keybinds {
+    for name, key in key_map {
         if rl.IsKeyPressed(key) {
-            handleInput(action, true)
+            handleInput(name, button_keybinds[key], true)
         } else if rl.IsKeyReleased(key) {
-            handleInput(action, false)
+            handleInput(name, button_keybinds[key], false)
         }
         
     }
@@ -154,4 +211,6 @@ checkInput := proc() {
 clearInput := proc() {
     clear(&key_map)
     clear(&button_keybinds)
+    clear(&mouse_button_keybinds)
+    clear(&mouse_button_map)
 }

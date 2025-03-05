@@ -2,40 +2,53 @@ package ui
 
 import rl "vendor:raylib"
 import "core:fmt"
+import "../defs"
+import sto "core:strings"
+import "core:strconv"
+
+focused_component:^component
+
+carg::enum{
+    TEXT,
+    CARET,
+    BACKGROUND,
+}
+
+stack_mode::enum{
+    VERTICAL,
+    HORIZONTAL,
+    GHOST,
+    RELATIVE,
+    RELATIVE_HORIZONTAL
+}
 
 component::struct{
     id: string,
-    pos: rl.Vector2,
+    origin: rl.Vector2,
     size: rl.Vector2,
-    input: proc(self: ^component),
+    margin: rl.Vector4,
+    content_origin: rl.Vector2,
+    content_size: rl.Vector2,
+    value: defs.data_union,
+    input: proc(self: ^component, action: user_action, pressed: bool) -> bool,
     render: proc(self: ^component),
+    action: proc(self: ^component, arg: defs.data_union),
     previous: ^component,
     next: ^component,
+    args: map[carg]defs.data_union,
+    stack: stack_mode,
+    reference: ^component,
 }
 
-
-
-textfield_render::proc(self: ^component){
-    rl.DrawRectangle(i32(self.pos.x), i32(self.pos.y), i32(self.size.x), i32(self.size.y), rl.RAYWHITE);
-}
-
-textfield_input::proc(self: ^component){
-    if rl.IsKeyPressed(.BACKSLASH) {
-        fmt.println("backslash pressed");
-    } else if rl.IsKeyPressed(.ENTER) {
-        fmt.println("changing line");
-    } else if rl.IsKeyPressed(.ESCAPE) {
-        fmt.println("escape");
+add_component::proc(w: ^window, c: ^component){
+    if w.components == nil {
+        w.components = c
     } else {
-        fmt.println(rl.GetKeyPressed())
+        c2 := w.components
+        for c2.next != nil {
+            c2 = c2.next
+        }
+        c2.next = c
+        c.previous = c2
     }
 }
-
-textfield::proc(id: string, pos: rl.Vector2, size: rl.Vector2)->component{
-    result:component;
-    result.id, result.pos, result.size = id, pos, size;
-    result.render=textfield_render;
-    result.input=textfield_input;
-    return result;
-}
-

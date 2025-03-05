@@ -7,7 +7,6 @@ import "core:strconv"
 ui_font : rl.Font
 windows_head: ^window = nil
 windows_tail: ^window = nil
-selected_element: ^entity = nil
 hover_window: ^window = nil
 mousepos: rl.Vector2
 cursor_enabled: bool=true
@@ -67,7 +66,8 @@ window :: struct {
     next: ^window,
     previous: ^window,
     draw: proc(),
-    input: proc() -> bool,
+    input: proc(self: ^window, user_action: user_action, pressed: bool) -> bool,
+    args: map[string]defs.data_union
 }
 
 entity :: struct {
@@ -96,17 +96,13 @@ isPointInsideBox :: proc(pos: rl.Vector2, origin: rl.Vector2, size: rl.Vector2) 
 
 isPointInsideHeader :: proc(pos: rl.Vector2, w: ^window) -> bool {
     if(w.flags[windowFlags.W_NOHEADER] || w.flags[windowFlags.W_NORESIZE] || w.flags[windowFlags.W_RELATIVETOSCREEN]) {
-        fmt.println("no header")
         return false        
     }
     else{
-        fmt.println("has header")
         if(isPointInsideBox(pos, w.origin, rl.Vector2{w.size.x, headersize})){
-            fmt.println("in header")
             return true
         }
     }
-    fmt.println("no header2")
     return false
 }
 
@@ -225,7 +221,49 @@ drawWindows :: proc() {
             w.content_size.x -= scrollsize
         }
         rl.BeginScissorMode(i32(w.content_origin.x), i32(w.content_origin.y), i32(w.content_size.x), i32(w.content_size.y))
+        content_start:=rl.Vector2{w.content_origin.x, w.content_origin.y}
         for c := w.components; c != nil; c = c.next {
+            c.content_origin = content_start
+            if(c.stack==.GHOST && c.previous!=nil){
+                c.content_origin.y = c.previous.content_origin.y
+                c.content_size.x=c.size.x
+                c.content_size.y=c.size.y
+                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+                c.content_origin.y += c.origin.y
+            }
+            else if(c.stack==.HORIZONTAL && c.previous!=nil){
+                c.content_origin.y = c.previous.content_origin.y
+                c.content_origin.x = c.previous.content_origin.x + c.previous.content_size.x
+                c.content_size.x=c.size.x
+                c.content_size.y=c.size.y
+                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+                c.content_origin.y += c.origin.y        
+            }
+            else if(c.stack==.RELATIVE){
+                c.content_size.x = w.content_size.x*0.01*c.size.x
+                c.content_size.y = w.content_size.y*0.01*c.size.y
+                c.content_origin.y += c.origin.y*w.content_size.y
+                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+            }
+            else if(c.stack==.RELATIVE_HORIZONTAL){
+                c.content_size.x = w.content_size.x*0.01*c.size.x
+                c.content_size.y = c.size.y
+                c.content_origin.y += c.origin.y
+                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+            }
+            else{
+                c.content_size.x = c.size.x
+                c.content_size.y = c.size.y
+                c.content_origin.y += c.origin.y
+                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+            }
+            c.content_origin.x += c.margin.x
+            c.content_origin.y += c.margin.y
+            c.content_size.x -= c.margin.z+c.margin.x
+            c.content_size.y -= c.margin.w+c.margin.y
+            if c.stack != .GHOST && c.stack != .HORIZONTAL {
+                content_start.y += c.content_size.y
+            }
             c.render(c)
         }
         rl.EndScissorMode()
