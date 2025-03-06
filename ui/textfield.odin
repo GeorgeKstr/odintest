@@ -35,7 +35,6 @@ textfield_render::proc(self: ^component){
     }
     newtext := sto.to_string(builder)
     text = sto.concatenate([]string{textbefore, newtext, textafter})
-    rl.BeginScissorMode(i32(self.content_origin.x), i32(self.content_origin.y), i32(self.content_size.x), i32(self.content_size.y))
 
     text_width := rl.MeasureTextEx(ui_font, sto.clone_to_cstring(text), f32(defs.header_fontsize), 0).x
     offset := f32(0.0)
@@ -52,7 +51,6 @@ textfield_render::proc(self: ^component){
         text = sto.concatenate([]string{textbefore, newtext, textafter})
     }
     draw_text(sto.clone_to_cstring(text), ui_font, self.content_origin + rl.Vector2{4 + offset, 4}, rl.BLACK, 1.0)
-    rl.EndScissorMode()
 }
 
 textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> bool{
@@ -133,8 +131,12 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             self.args[carg.CARET] = caret - 1
         }
         else if rl.IsKeyPressed(.ENTER) {
+            text, ok := self.args[carg.TEXT].(string)
+            if !ok || len(text) == 0 {
+                return true
+            }
             if self.action != nil {
-                self.action(self, self.args[carg.TEXT].(string))
+                self.action(self, text)
                 return true
             }
         }

@@ -18,16 +18,16 @@ fill_console :: proc(self: ^ui.component, arg: defs.data_union){
 }
 
 main :: proc() {
-	w:=ui.createWindow(rl.Vector2{5, 5}, rl.Vector2{500, 400}, "first window")
+	w:=ui.createWindow(rl.Vector2{5, 5}, rl.Vector2{500, 200+ui.headersize}, "first window")
 	w2:=ui.createWindow(rl.Vector2{50, 50}, rl.Vector2{300, 400}, "second window")
-	textarea := ui.create_textarea("textarea1", "demotext", rl.Vector2{0, 0}, rl.Vector2{100, 100})
-	textarea.margin={5, 5, 5, 40}
+	textarea := ui.create_textarea("textarea1", "demotext", rl.Vector2{0, 0}, rl.Vector2{100, 360})
+	textarea.margin={5, 5, 5, 2.5}
 	textarea.args[ui.carg.BACKGROUND] = rl.Color{255, 255, 200, 255}
-	textarea.stack=ui.stack_mode.RELATIVE
+	textarea.stack=ui.stack_mode.RELATIVE_HORIZONTAL
 	ui.add_component(w, textarea)
-	textfield := ui.create_textfield("textfield1", "", rl.Vector2{0, 5}, rl.Vector2{100, 40})
+	textfield := ui.create_textfield("textfield1", "", rl.Vector2{0, 0}, rl.Vector2{100, 40})
 	textfield.stack=ui.stack_mode.RELATIVE_HORIZONTAL
-	textfield.margin={5, 5, 5, 5}
+	textfield.margin={5, 2.5, 5, 5}
 	textfield.reference=textarea
 	textfield.action=fill_console
 	ui.add_component(w, textfield)

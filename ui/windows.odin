@@ -14,15 +14,23 @@ wlasty: f32
 walpha: f32
 scrolloffset: f32
 move_offset: rl.Vector2
-move_mode: bool=false
+move_mode: moveMode = .MOVE_NONE
 screensize: rl.Vector2
 ratio: f32
 headersize:= f32(defs.header_height)
-scrollsize :: 2.0
-edgesize :: 1.0
+scrollsize :: 12
+edgesize :: 8
 closesize :: 0.6
 windows_color :: rl.Color{25, 25, 25, 150}
-scrollbar_color :: rl.Color{38, 38, 38, 255}
+scrollbar_background :: rl.Color{50, 50, 50, 255}
+scrollbar_color :: rl.Color{100, 100, 100, 255}
+
+moveMode :: enum {
+    MOVE_NONE,
+    MOVE_RESIZE_LEFT,
+    MOVE_RESIZE_RIGHT,
+    MOVE_MOVE
+}
 
 windowFlags :: enum {
     W_NONE,
@@ -59,6 +67,7 @@ window :: struct {
     size: rl.Vector2,
     name: cstring,
     flags: [len(windowFlags)]bool,
+    scrollable: bool,
     scroll: f32,
     content_origin: rl.Vector2,
     content_size: rl.Vector2,
@@ -117,10 +126,6 @@ drawHeader :: proc(w: ^window) {
 
 drawBody :: proc(w: ^window) {
     draw_rectangle(w.content_origin, w.content_size, windows_color, walpha)
-    if !(w.flags[windowFlags.W_NORESIZE]) {
-        draw_texture_centered("assets/ui/win_scale_l.png", rl.Vector2{w.content_origin.x, w.content_origin.y + w.content_size.y}, rl.Vector2{headersize, headersize}, walpha*0.6)
-        draw_texture_centered("assets/ui/win_scale_r.png", rl.Vector2{w.content_origin.x + w.content_size.x, w.content_origin.y + w.content_size.y}, rl.Vector2{headersize, headersize}, walpha*0.6)
-    }
 }
 
 drawScrollbar :: proc(w: ^window) {
@@ -184,6 +189,54 @@ makeHead :: proc(w: ^window) {
     windows_tail = w2
 }
 
+calculateScroll :: proc(w: ^window) -> f32 {
+    content_start:=rl.Vector2{w.content_origin.x, 0}
+    for c := w.components; c != nil; c = c.next {
+        c.content_origin = content_start
+        if(c.stack==.GHOST && c.previous!=nil){
+            c.content_origin.y = c.previous.content_origin.y
+            c.content_size.x=c.size.x
+            c.content_size.y=c.size.y
+            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+            c.content_origin.y += c.origin.y
+        }
+        else if(c.stack==.HORIZONTAL && c.previous!=nil){
+            c.content_origin.y = c.previous.content_origin.y
+            c.content_origin.x = c.previous.content_origin.x + c.previous.content_size.x
+            c.content_size.x=c.size.x
+            c.content_size.y=c.size.y
+            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+            c.content_origin.y += c.origin.y        
+        }
+        else if(c.stack==.RELATIVE){
+            c.content_size.x = w.content_size.x*0.01*c.size.x
+            c.content_size.y = w.content_size.y*0.01*c.size.y
+            c.content_origin.y += c.origin.y*w.content_size.y
+            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+        }
+        else if(c.stack==.RELATIVE_HORIZONTAL){
+            c.content_size.x = w.content_size.x*0.01*c.size.x
+            c.content_size.y = c.size.y
+            c.content_origin.y += c.origin.y
+            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+        }
+        else{
+            c.content_size.x = c.size.x
+            c.content_size.y = c.size.y
+            c.content_origin.y += c.origin.y
+            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
+        }
+        c.content_origin.x += c.margin.x
+        c.content_origin.y += c.margin.y
+        c.content_size.x -= c.margin.z+c.margin.x
+        c.content_size.y -= c.margin.w+c.margin.y
+        if c.stack != .GHOST && c.stack != .HORIZONTAL {
+            content_start.y += c.content_size.y+c.margin.w+c.margin.y
+        }
+    }
+    return content_start.y/w.content_size.y
+}
+
 drawWindows :: proc() {
     if windows_head == nil {
         return
@@ -191,8 +244,15 @@ drawWindows :: proc() {
     setScreenValues(f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()))
     hover_window=nil
     w := windows_head
-    if move_mode {
+    if move_mode == .MOVE_MOVE {
         w.origin = mousepos + move_offset
+    } else if move_mode == .MOVE_RESIZE_RIGHT {
+        w.size = - w.origin + mousepos - move_offset
+    } else if move_mode == .MOVE_RESIZE_LEFT {
+        neworigin:= mousepos.x - move_offset.x
+        w.size.x += w.origin.x - neworigin
+        w.origin.x = neworigin
+        w.size.y = - w.origin.y + mousepos.y - move_offset.y
     }
     w = windows_tail
     for w != nil {
@@ -215,13 +275,24 @@ drawWindows :: proc() {
             drawHeader(w)
         }
         drawBody(w)
-        
-        if w.scroll > 0.0 {
-            drawScrollbar(w)
+        scrollAmount := calculateScroll(w)
+        previousX := w.content_size.x
+        if(scrollAmount > 1.0){
+            draw_rectangle(rl.Vector2{w.content_origin.x+w.content_size.x-scrollsize, w.content_origin.y}, rl.Vector2{scrollsize, w.content_size.y}, scrollbar_background, 1.0*walpha)
+            scrollbarSize := rl.Vector2{scrollsize - 2, w.content_size.y / scrollAmount - 2}
+            scrollbarPos := rl.Vector2{
+                w.content_origin.x + w.content_size.x - scrollsize + 1,
+                w.content_origin.y + 1+(w.content_size.y - scrollbarSize.y - 1) * w.scroll
+            }
+            draw_rectangle(scrollbarPos, scrollbarSize, scrollbar_color, 1.0 * walpha)
             w.content_size.x -= scrollsize
+            w.scrollable = true
+        } else {
+            w.scrollable = false
+            w.scroll=0.0
         }
-        rl.BeginScissorMode(i32(w.content_origin.x), i32(w.content_origin.y), i32(w.content_size.x), i32(w.content_size.y))
         content_start:=rl.Vector2{w.content_origin.x, w.content_origin.y}
+        content_start.y -= w.content_size.y*(scrollAmount-1.0)*w.scroll
         for c := w.components; c != nil; c = c.next {
             c.content_origin = content_start
             if(c.stack==.GHOST && c.previous!=nil){
@@ -261,12 +332,20 @@ drawWindows :: proc() {
             c.content_origin.y += c.margin.y
             c.content_size.x -= c.margin.z+c.margin.x
             c.content_size.y -= c.margin.w+c.margin.y
-            if c.stack != .GHOST && c.stack != .HORIZONTAL {
-                content_start.y += c.content_size.y
+            if(c.content_origin.y<w.content_origin.y+w.content_size.y){
+                rl.BeginScissorMode(i32(c.content_origin.x), i32(max(c.content_origin.y, w.content_origin.y)), i32(c.content_size.x), i32(min(c.content_origin.y+c.content_size.y, w.content_origin.y+w.content_size.y)-max(c.content_origin.y, w.content_origin.y)))
+                c.render(c)
+                rl.EndScissorMode()
             }
-            c.render(c)
+            if c.stack != .GHOST && c.stack != .HORIZONTAL {
+                content_start.y += c.content_size.y+c.margin.w+c.margin.y
+            }
         }
-        rl.EndScissorMode()
+        w.content_size.x = previousX
+        if !(w.flags[windowFlags.W_NORESIZE]) {
+            draw_texture_centered("assets/ui/win_scale_l.png", rl.Vector2{w.content_origin.x, w.content_origin.y + w.content_size.y}, rl.Vector2{headersize, headersize}, walpha)
+            draw_texture_centered("assets/ui/win_scale_r.png", rl.Vector2{w.content_origin.x + w.content_size.x, w.content_origin.y + w.content_size.y}, rl.Vector2{headersize, headersize}, walpha)
+        }
         w = w.previous
     }
 }

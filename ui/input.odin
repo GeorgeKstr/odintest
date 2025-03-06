@@ -18,24 +18,43 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                         hover_window = nil
                         return
                     }
-                    move_mode=true
+                    move_mode=.MOVE_MOVE
                     move_offset=w.content_origin - mousepos
                     move_offset.y-=headersize
                 }
                 else{
-                    move_mode=false
-                    focused_component = nil
-                    for c:=w.components;c!=nil;c=c.next{
-                        if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
-                            focused_component = c
-                            c.input(c, action, pressed)
-                            break
+                    move_mode=.MOVE_NONE
+                    if mousepos.x <= w.content_origin.x+edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize{
+                        move_offset = mousepos - w.content_origin - {0, w.content_size.y}
+                        move_mode=.MOVE_RESIZE_LEFT
+                    } else if mousepos.x >= w.content_origin.x+w.content_size.x-edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize {
+                        move_offset = mousepos - w.content_origin - w.content_size
+                        move_mode=.MOVE_RESIZE_RIGHT
+                    } else {
+                        focused_component = nil
+                        for c:=w.components;c!=nil;c=c.next{
+                            if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
+                                focused_component = c
+                                c.input(c, action, pressed)
+                                break
+                            }
                         }
                     }
                 }
             }
             else{
-                move_mode=false
+                move_mode=.MOVE_NONE
+            }
+        } else if rl.GetMouseWheelMove() != 0 && hover_window!=nil {
+            w:=hover_window
+            if(w.scrollable){
+                w.scroll -= rl.GetMouseWheelMove()*0.02
+                if(w.scroll > 1.0){
+                    w.scroll = 1.0
+                }
+                if(w.scroll < 0.0){
+                    w.scroll = 0.0
+                }
             }
         }
         else{
@@ -45,7 +64,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
         }
         return;
     }
-    move_mode=false
+    move_mode=.MOVE_NONE
 }
 
 user_action::enum{
@@ -161,7 +180,9 @@ key_map := map[string]rl.KeyboardKey{
 mouse_button_map := map[string]rl.MouseButton{
     "MOUSE_LEFT" = .LEFT,
     "MOUSE_RIGHT" = .RIGHT,
-    "MOUSE_MIDDLE" = .MIDDLE
+    "MOUSE_MIDDLE" = .MIDDLE,
+    "MOUSE_SCROLL_DOWN" = .FORWARD,
+    "MOUSE_SCROLL_UP" = .BACK
 }
 
 mouse_button_keybinds := make(map[rl.MouseButton]user_action)
@@ -187,6 +208,10 @@ checkMouseButtons := proc() {
             handleInput(name, mouse_button_keybinds[button], true)
         } else if rl.IsMouseButtonReleased(button) {
             handleInput(name, mouse_button_keybinds[button], false)
+        } else if rl.GetMouseWheelMove() > 0 {
+            handleInput("MOUSE_SCROLL_UP", .ACTION_NONE, true)
+        } else if rl.GetMouseWheelMove() < 0 {
+            handleInput("MOUSE_SCROLL_DOWN", .ACTION_NONE, true)
         }
     }
 }
