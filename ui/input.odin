@@ -5,6 +5,9 @@ import "core:fmt"
 handleInput := proc(keyname: string, action: user_action, pressed: bool) {
     w := windows_head
     if cursor_enabled {
+        if rl.IsKeyPressed(.K) {
+            rl.SetWindowSize(800, 600)
+        }
         if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonReleased(.LEFT) {
             if(pressed){
                 w:=hover_window
@@ -218,7 +221,7 @@ checkMouseButtons := proc() {
 
 checkKeyboard := proc() {
     for name, key in key_map {
-        if rl.IsKeyPressed(key) {
+        if rl.IsKeyDown(key) {
             handleInput(name, button_keybinds[key], true)
         } else if rl.IsKeyReleased(key) {
             handleInput(name, button_keybinds[key], false)

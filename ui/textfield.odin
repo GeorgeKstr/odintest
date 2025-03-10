@@ -5,6 +5,8 @@ import "core:fmt"
 import "../defs"
 import sto "core:strings"
 
+buttontime:f64 = 0
+
 textfield_render::proc(self: ^component){
     rgb: rl.Color
     if self.args[carg.BACKGROUND] != nil {
@@ -86,7 +88,11 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             text = sto.concatenate([]string{textbefore, newtext, textafter})
             self.args[carg.CARET] = caret + 1
         }
-        else if rl.IsKeyPressed(.LEFT) {
+        else if rl.IsKeyDown(.LEFT) {
+            if(buttontime > rl.GetTime()){
+                return true
+            }
+            buttontime = rl.GetTime() + 0.1
             caret, ok := self.args[carg.CARET].(int)
             if !ok {
                 caret = 0
@@ -97,7 +103,11 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             }
             self.args[carg.CARET] = caret
         }
-        else if rl.IsKeyPressed(.RIGHT) {
+        else if rl.IsKeyDown(.RIGHT) {
+            if(buttontime > rl.GetTime()){
+                return true
+            }
+            buttontime = rl.GetTime() + 0.1
             caret, ok := self.args[carg.CARET].(int)
             if !ok {
                 caret = 0
@@ -112,7 +122,11 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             }
             self.args[carg.CARET] = caret
         }
-        else if rl.IsKeyPressed(.BACKSPACE) {
+        else if rl.IsKeyDown(.BACKSPACE) {
+            if(buttontime > rl.GetTime()){
+                return true
+            }
+            buttontime = rl.GetTime() + 0.05
             caret, ok := self.args[carg.CARET].(int)
             if !ok {
                 caret = 0
@@ -130,7 +144,7 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             text = sto.concatenate([]string{textbefore, textafter})
             self.args[carg.CARET] = caret - 1
         }
-        else if rl.IsKeyPressed(.ENTER) {
+        else if rl.IsKeyDown(.ENTER) {
             text, ok := self.args[carg.TEXT].(string)
             if !ok || len(text) == 0 {
                 return true

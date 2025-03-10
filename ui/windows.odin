@@ -195,37 +195,15 @@ calculateScroll :: proc(w: ^window) -> f32 {
         c.content_origin = content_start
         if(c.stack==.GHOST && c.previous!=nil){
             c.content_origin.y = c.previous.content_origin.y
-            c.content_size.x=c.size.x
-            c.content_size.y=c.size.y
-            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-            c.content_origin.y += c.origin.y
         }
-        else if(c.stack==.HORIZONTAL && c.previous!=nil){
-            c.content_origin.y = c.previous.content_origin.y
-            c.content_origin.x = c.previous.content_origin.x + c.previous.content_size.x
-            c.content_size.x=c.size.x
-            c.content_size.y=c.size.y
-            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-            c.content_origin.y += c.origin.y        
-        }
-        else if(c.stack==.RELATIVE){
-            c.content_size.x = w.content_size.x*0.01*c.size.x
-            c.content_size.y = w.content_size.y*0.01*c.size.y
-            c.content_origin.y += c.origin.y*w.content_size.y
-            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-        }
-        else if(c.stack==.RELATIVE_HORIZONTAL){
-            c.content_size.x = w.content_size.x*0.01*c.size.x
-            c.content_size.y = c.size.y
-            c.content_origin.y += c.origin.y
-            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-        }
-        else{
-            c.content_size.x = c.size.x
-            c.content_size.y = c.size.y
-            c.content_origin.y += c.origin.y
-            c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-        }
+        corigin := rl.Vector2{f32(int(c.origin.x)), f32(int(c.origin.y))}
+        csize := rl.Vector2{f32(int(c.size.x)), f32(int(c.size.y))}
+        relative_origin := rl.Vector2{c.origin.x - corigin.x, c.origin.y - corigin.y}*1000
+        relative_size := rl.Vector2{c.size.x - csize.x, c.size.y - csize.y}*1000
+        c.content_size.x = csize.x + w.content_size.x*relative_size.x/100
+        c.content_size.y = csize.y + w.content_size.y*relative_size.y/100
+        c.content_origin.y += corigin.y + (w.content_size.y-c.content_size.y)*relative_origin.y/100
+        c.content_origin.x += corigin.x + (w.content_size.x-c.content_size.x)*relative_origin.x/100
         c.content_origin.x += c.margin.x
         c.content_origin.y += c.margin.y
         c.content_size.x -= c.margin.z+c.margin.x
@@ -263,6 +241,16 @@ drawWindows :: proc() {
             w.content_origin.x = (screensize.x - w.content_size.x)*0.01*w.origin.x
             w.content_origin.y = (screensize.y - w.content_size.y)*0.01 * w.origin.y
         } else {
+            if w.origin.x < 0 {
+                w.origin.x = 0
+            } else if w.origin.x + w.size.x > screensize.x {
+                w.origin.x = screensize.x - w.size.x
+            }
+            if w.origin.y < 0 {
+                w.origin.y = 0
+            } else if w.origin.y + w.size.y > screensize.y {
+                w.origin.y = screensize.y - w.size.y
+            }
             w.content_origin = w.origin
             w.content_size = w.size
         }
@@ -297,37 +285,15 @@ drawWindows :: proc() {
             c.content_origin = content_start
             if(c.stack==.GHOST && c.previous!=nil){
                 c.content_origin.y = c.previous.content_origin.y
-                c.content_size.x=c.size.x
-                c.content_size.y=c.size.y
-                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-                c.content_origin.y += c.origin.y
             }
-            else if(c.stack==.HORIZONTAL && c.previous!=nil){
-                c.content_origin.y = c.previous.content_origin.y
-                c.content_origin.x = c.previous.content_origin.x + c.previous.content_size.x
-                c.content_size.x=c.size.x
-                c.content_size.y=c.size.y
-                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-                c.content_origin.y += c.origin.y        
-            }
-            else if(c.stack==.RELATIVE){
-                c.content_size.x = w.content_size.x*0.01*c.size.x
-                c.content_size.y = w.content_size.y*0.01*c.size.y
-                c.content_origin.y += c.origin.y*w.content_size.y
-                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-            }
-            else if(c.stack==.RELATIVE_HORIZONTAL){
-                c.content_size.x = w.content_size.x*0.01*c.size.x
-                c.content_size.y = c.size.y
-                c.content_origin.y += c.origin.y
-                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-            }
-            else{
-                c.content_size.x = c.size.x
-                c.content_size.y = c.size.y
-                c.content_origin.y += c.origin.y
-                c.content_origin.x += (w.content_size.x-c.content_size.x)*0.01*c.origin.x
-            }
+            corigin := rl.Vector2{f32(int(c.origin.x)), f32(int(c.origin.y))}
+            csize := rl.Vector2{f32(int(c.size.x)), f32(int(c.size.y))}
+            relative_origin := rl.Vector2{abs(c.origin.x - corigin.x), abs(c.origin.y - corigin.y)}*1000
+            relative_size := rl.Vector2{abs(c.size.x - csize.x), abs(c.size.y - csize.y)}*1000
+            c.content_size.x = csize.x + w.content_size.x*relative_size.x/100
+            c.content_size.y = csize.y + w.content_size.y*relative_size.y/100
+            c.content_origin.y += corigin.y + (w.content_size.y-c.content_size.y)*relative_origin.y/100
+            c.content_origin.x += corigin.x + (w.content_size.x-c.content_size.x)*relative_origin.x/100
             c.content_origin.x += c.margin.x
             c.content_origin.y += c.margin.y
             c.content_size.x -= c.margin.z+c.margin.x
