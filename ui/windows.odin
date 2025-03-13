@@ -214,7 +214,6 @@ calculateScroll :: proc(w: ^window) -> f32 {
         c.content_origin.x += c.margin.x
         c.content_origin.y += c.margin.y
         c.content_size.x -= c.margin.z+c.margin.x
-        c.content_size.y -= c.margin.w+c.margin.y
         if c.stack != .GHOST && c.stack != .HORIZONTAL {
             content_start.y += c.content_size.y+c.margin.w+c.margin.y
         } else if c.stack == .HORIZONTAL && c.previous != nil && c.content_origin.y + c.content_size.y + c.margin.w+c.margin.y > content_start.y {
@@ -315,7 +314,6 @@ drawWindows :: proc() {
             c.content_origin.x += c.margin.x
             c.content_origin.y += c.margin.y
             c.content_size.x -= c.margin.z+c.margin.x
-            c.content_size.y -= c.margin.w+c.margin.y
             if(c.content_origin.y<w.content_origin.y+w.content_size.y){
                 rl.BeginScissorMode(
                     i32(c.content_origin.x),

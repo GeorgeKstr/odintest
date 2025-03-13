@@ -5,6 +5,8 @@ import "core:fmt"
 import "../defs"
 import sto "core:strings"
 
+checkbox_side :: 30
+
 checkbox_render::proc(self: ^component){
     rgb: rl.Color
     if self.args[carg.BACKGROUND] != nil {
@@ -13,10 +15,12 @@ checkbox_render::proc(self: ^component){
         rgb = rl.RAYWHITE
     }
     checked:= self.args[carg.CHECKED].(bool)
+    checkbox_size := rl.Vector2{checkbox_side, checkbox_side}
+    box_origin := self.content_origin + (self.content_size - checkbox_size) / 2
     if checked {
-        draw_texture("assets/ui/checkbox_checked.png", self.content_origin, self.content_size, 1.0)
+        draw_texture("assets/ui/checkbox_checked.png", box_origin, checkbox_size, 1.0)
     } else {
-        draw_texture("assets/ui/checkbox.png", self.content_origin, self.content_size, 1.0)
+        draw_texture("assets/ui/checkbox.png", box_origin, checkbox_size, 1.0)
     }
 }
 

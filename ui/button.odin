@@ -5,6 +5,8 @@ import "core:fmt"
 import "../defs"
 import sto "core:strings"
 
+button_height :: 30
+
 button_render::proc(self: ^component){
     rgb: rl.Color
     if self.args[carg.BACKGROUND] != nil {
@@ -12,7 +14,7 @@ button_render::proc(self: ^component){
     } else {
         rgb = rl.RAYWHITE
     }
-    draw_texture("assets/ui/button.png", self.content_origin, self.content_size, 1.0)
+    draw_texture("assets/ui/button.png", self.content_origin + rl.Vector2{0, (self.content_size.y - button_height) / 2}, rl.Vector2{self.content_size.x, button_height}, 1.0)
     text, ok := self.args[carg.TEXT].(string)
     if !ok {
         text = ""

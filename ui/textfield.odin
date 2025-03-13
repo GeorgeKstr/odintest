@@ -6,6 +6,8 @@ import "../defs"
 import sto "core:strings"
 
 buttontime:f64 = 0
+textfield_padding::6
+
 
 textfield_render::proc(self: ^component){
     rgb: rl.Color
@@ -14,11 +16,16 @@ textfield_render::proc(self: ^component){
     } else {
         rgb = rl.RAYWHITE
     }
-    if(self == focused_component){
-        draw_rectangle(self.content_origin, self.content_size, rl.Color{100, 149, 237, 255}, 1.0)
-        draw_rectangle(self.content_origin + rl.Vector2{2, 2}, self.content_size - rl.Vector2{4, 4}, rgb, 1.0)
+    text_size := rl.MeasureTextEx(ui_font, "a", f32(defs.header_fontsize), 0)
+    bg_pos := self.content_origin + rl.Vector2{0, -textfield_padding + (self.content_size.y - text_size.y) / 2}
+    bg_size := rl.Vector2{self.content_size.x, text_size.y+textfield_padding*2}
+    if self == focused_component {
+        draw_rectangle(bg_pos, bg_size, rl.Color{100, 149, 237, 255}, 1.0)
+        fg_pos := bg_pos + rl.Vector2{2, 2}
+        fg_size := rl.Vector2{bg_size.x - 4, bg_size.y - 4}
+        draw_rectangle(fg_pos, fg_size, rgb, 1.0)
     } else {
-        draw_rectangle(self.content_origin, self.content_size, rgb, 1.0)
+        draw_rectangle(bg_pos, bg_size, rgb, 1.0)
     }
     
     text, ok := self.args[carg.TEXT].(string)
@@ -37,12 +44,6 @@ textfield_render::proc(self: ^component){
     }
     newtext := sto.to_string(builder)
     text = sto.concatenate([]string{textbefore, newtext, textafter})
-
-    text_width := rl.MeasureTextEx(ui_font, sto.clone_to_cstring(text), f32(defs.header_fontsize), 0).x
-    offset := f32(0.0)
-    if text_width > self.content_size.x {
-        offset = self.content_size.x - text_width - 8.0 // 8.0 is the padding (4.0 from each side)
-    }
     if self == focused_component {
         if u64(rl.GetTime() * 2) % 2 == 1 {
             sto.write_rune(&builder, 0x7c)
@@ -52,7 +53,12 @@ textfield_render::proc(self: ^component){
         newtext = sto.to_string(builder)
         text = sto.concatenate([]string{textbefore, newtext, textafter})
     }
-    draw_text(sto.clone_to_cstring(text), ui_font, self.content_origin + rl.Vector2{4 + offset, 4}, rl.BLACK, 1.0)
+    text_width := rl.MeasureTextEx(ui_font, sto.clone_to_cstring(text), f32(defs.header_fontsize), 0).x
+    offset := f32(0.0)
+    if text_width > self.content_size.x {
+        offset = self.content_size.x - text_width - 8.0 // 8.0 is the padding (4.0 from each side)
+    }
+    draw_text(sto.clone_to_cstring(text), ui_font, bg_pos + rl.Vector2{4 + offset, bg_size.y - text_size.y - textfield_padding}, rl.BLACK, 1.0)
 }
 
 textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> bool{

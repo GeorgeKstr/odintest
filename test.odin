@@ -24,7 +24,7 @@ printhello::proc(self: ^ui.component, arg: defs.data_union){
 main :: proc() {
 	w:=ui.createWindow(rl.Vector2{5, 5}, rl.Vector2{500, 200+ui.headersize}, "first window")
 	w2:=ui.createWindow(rl.Vector2{50, 50}, rl.Vector2{300, 400}, "second window")
-	textarea := ui.create_textarea("textarea1", "demotext", rl.Vector2{0, 0}, rl.Vector2{0.100, -80.100})
+	textarea := ui.create_textarea("textarea1", "demotext", rl.Vector2{0, 0}, rl.Vector2{0.100, -100.100})
 	textarea.margin={5, 5, 5, 2.5}
 	textarea.args[ui.carg.BACKGROUND] = rl.Color{255, 255, 200, 255}
 	ui.add_component(w, textarea)
