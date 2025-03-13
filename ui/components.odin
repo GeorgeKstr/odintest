@@ -12,6 +12,9 @@ carg::enum{
     TEXT,
     CARET,
     BACKGROUND,
+    HOVER_COLOR,
+    CHECKED,
+    CENTERED,
 }
 
 stack_mode::enum{

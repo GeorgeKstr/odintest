@@ -193,8 +193,13 @@ calculateScroll :: proc(w: ^window) -> f32 {
     content_start:=rl.Vector2{w.content_origin.x, 0}
     for c := w.components; c != nil; c = c.next {
         c.content_origin = content_start
+        horizontal_start := content_start
         if(c.stack==.GHOST && c.previous!=nil){
-            c.content_origin.y = c.previous.content_origin.y
+            c.content_origin.y = horizontal_start.y
+        }
+        if(c.stack==.HORIZONTAL && c.previous!=nil){
+            c.content_origin.y = horizontal_start.y
+            c.content_origin.x = horizontal_start.x
         }
         corigin := rl.Vector2{f32(int(c.origin.x)), f32(int(c.origin.y))}
         csize := rl.Vector2{f32(int(c.size.x)), f32(int(c.size.y))}
@@ -204,12 +209,16 @@ calculateScroll :: proc(w: ^window) -> f32 {
         c.content_size.y = csize.y + w.content_size.y*relative_size.y/100
         c.content_origin.y += corigin.y + (w.content_size.y-c.content_size.y)*relative_origin.y/100
         c.content_origin.x += corigin.x + (w.content_size.x-c.content_size.x)*relative_origin.x/100
+        horizontal_start = c.content_origin
+        horizontal_start.x += c.content_size.x
         c.content_origin.x += c.margin.x
         c.content_origin.y += c.margin.y
         c.content_size.x -= c.margin.z+c.margin.x
         c.content_size.y -= c.margin.w+c.margin.y
         if c.stack != .GHOST && c.stack != .HORIZONTAL {
             content_start.y += c.content_size.y+c.margin.w+c.margin.y
+        } else if c.stack == .HORIZONTAL && c.previous != nil && c.content_origin.y + c.content_size.y + c.margin.w+c.margin.y > content_start.y {
+            content_start.y = c.content_origin.y + c.content_size.y + c.margin.w+c.margin.y
         }
     }
     return content_start.y/w.content_size.y
@@ -248,9 +257,11 @@ drawWindows :: proc() {
             }
             if w.origin.y < 0 {
                 w.origin.y = 0
-            } else if w.origin.y + w.size.y > screensize.y {
-                w.origin.y = screensize.y - w.size.y
+            } else if w.origin.y + headersize > screensize.y {
+                w.origin.y = screensize.y - headersize
             }
+            w.size.x = max(w.size.x, 200)
+            w.size.y = max(w.size.y, 200)
             w.content_origin = w.origin
             w.content_size = w.size
         }
@@ -281,10 +292,15 @@ drawWindows :: proc() {
         }
         content_start:=rl.Vector2{w.content_origin.x, w.content_origin.y}
         content_start.y -= w.content_size.y*(scrollAmount-1.0)*w.scroll
+        horizontal_start := content_start
         for c := w.components; c != nil; c = c.next {
             c.content_origin = content_start
             if(c.stack==.GHOST && c.previous!=nil){
-                c.content_origin.y = c.previous.content_origin.y
+                c.content_origin.y = horizontal_start.y
+            }
+            if(c.stack==.HORIZONTAL && c.previous!=nil){
+                c.content_origin.y = horizontal_start.y
+                c.content_origin.x = horizontal_start.x
             }
             corigin := rl.Vector2{f32(int(c.origin.x)), f32(int(c.origin.y))}
             csize := rl.Vector2{f32(int(c.size.x)), f32(int(c.size.y))}
@@ -294,12 +310,19 @@ drawWindows :: proc() {
             c.content_size.y = csize.y + w.content_size.y*relative_size.y/100
             c.content_origin.y += corigin.y + (w.content_size.y-c.content_size.y)*relative_origin.y/100
             c.content_origin.x += corigin.x + (w.content_size.x-c.content_size.x)*relative_origin.x/100
+            horizontal_start = c.content_origin
+            horizontal_start.x += c.content_size.x
             c.content_origin.x += c.margin.x
             c.content_origin.y += c.margin.y
             c.content_size.x -= c.margin.z+c.margin.x
             c.content_size.y -= c.margin.w+c.margin.y
             if(c.content_origin.y<w.content_origin.y+w.content_size.y){
-                rl.BeginScissorMode(i32(c.content_origin.x), i32(max(c.content_origin.y, w.content_origin.y)), i32(c.content_size.x), i32(min(c.content_origin.y+c.content_size.y, w.content_origin.y+w.content_size.y)-max(c.content_origin.y, w.content_origin.y)))
+                rl.BeginScissorMode(
+                    i32(c.content_origin.x),
+                    i32(max(c.content_origin.y, w.content_origin.y)),
+                    i32(min(c.content_size.x, w.content_origin.x + w.content_size.x - c.content_origin.x)),
+                    i32(min(c.content_origin.y + c.content_size.y, w.content_origin.y + w.content_size.y) - max(c.content_origin.y, w.content_origin.y))
+                )
                 c.render(c)
                 rl.EndScissorMode()
             }
