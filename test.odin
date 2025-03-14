@@ -52,6 +52,10 @@ main :: proc() {
 	label.stack = .HORIZONTAL
 	ui.add_component(w, label)
 
+	slider := ui.create_slider("slider1", 20, 10, 100, 5, rl.Vector2{0, 0}, rl.Vector2{200, 40})
+	slider.margin={5, 2.5, 5, 5}
+	slider.stack = .HORIZONTAL
+	ui.add_component(w, slider)
 
 	//w.flags[ui.windowFlags.WINDOW_FLAG_BORDERLESS] = true
 	rl.InitWindow(1280, 720, "test")

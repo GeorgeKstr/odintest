@@ -7,6 +7,7 @@ ui_font :: "assets/ui/fonts/sangyo.ttf"
 data_union :: union {
     string,
     bool,
+    f32,
     rl.Vector3,
     rl.Color,
     int

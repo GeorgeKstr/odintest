@@ -47,6 +47,9 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
             }
             else{
                 move_mode=.MOVE_NONE
+                if focused_component!=nil{
+                    focused_component.input(focused_component, action, pressed)
+                }
             }
         } else if rl.GetMouseWheelMove() != 0 && hover_window!=nil {
             w:=hover_window

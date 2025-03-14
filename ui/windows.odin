@@ -233,12 +233,17 @@ drawWindows :: proc() {
     if move_mode == .MOVE_MOVE {
         w.origin = mousepos + move_offset
     } else if move_mode == .MOVE_RESIZE_RIGHT {
-        w.size = - w.origin + mousepos - move_offset
+        w.size.x = max(200, min(screensize.x - w.origin.x, mousepos.x - w.origin.x - move_offset.x))
+        w.size.y = max(200, min(screensize.y - w.origin.y, mousepos.y - w.origin.y - move_offset.y))
     } else if move_mode == .MOVE_RESIZE_LEFT {
-        neworigin:= mousepos.x - move_offset.x
-        w.size.x += w.origin.x - neworigin
+        neworigin:= max(0, mousepos.x - move_offset.x)
+        w.size.x = w.size.x + w.origin.x - neworigin
+        if w.size.x < 200 {
+            neworigin -= 200 - w.size.x
+            w.size.x = 200
+        }
         w.origin.x = neworigin
-        w.size.y = - w.origin.y + mousepos.y - move_offset.y
+        w.size.y = max(200, min(screensize.y - w.origin.y, - w.origin.y + mousepos.y - move_offset.y))
     }
     w = windows_tail
     for w != nil {
