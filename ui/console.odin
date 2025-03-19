@@ -8,7 +8,7 @@ import sto "core:strings"
 
 history: ^component = nil
 console_window : ^window = nil
-console_location := rl.Vector2{250, 250}
+console_location := rl.Vector2{0, 0}
 console_size := rl.Vector2{500, 500+ui.headersize}
 
 console_log :: proc(args: ..any, sep := " ", flush := true) {
@@ -42,9 +42,56 @@ enter_command :: proc(self: ^ui.component, arg: defs.data_union){
 }
 
 console_text_input :: proc(self: ^component, action: user_action, pressed: bool) -> bool{
-    if rl.IsKeyDown(.UP) {
-    } else if rl.IsKeyDown(.DOWN) {
-        
+    if rl.IsKeyPressed(.UP) {
+        if history == nil {
+            return true
+        }
+        hmax, ok := history.args[ui.carg.MAX].(int)
+        if !ok {
+            return true
+        }
+        step, cok := self.args[ui.carg.STEP].(int)
+        if !cok {
+            step=0
+        }
+        step -=1
+        if step < 0 {
+            step=hmax
+        }
+        temp:=history.entries
+        i:=0
+        for i<step && temp.next != nil {
+            temp=temp.next
+            i+=1
+        }
+        self.args[ui.carg.STEP] = i
+        self.args[ui.carg.TEXT] = temp.text
+    } else if rl.IsKeyPressed(.DOWN) {
+        if history == nil {
+            return true
+        }
+        hmax, ok := history.args[ui.carg.MAX].(int)
+        if !ok {
+            return true
+        }
+        step, cok := self.args[ui.carg.STEP].(int)
+        if !cok {
+            step=0
+        }
+        step +=1
+        temp:=history.entries
+        i:=0
+        for i<step {
+            if temp.next == nil {
+                temp=history.entries
+                i=0
+                break
+            }
+            temp=temp.next
+            i+=1
+        }
+        self.args[ui.carg.STEP] = i
+        self.args[ui.carg.TEXT] = temp.text
     } else {
         textfield_input(self, action, pressed)
     }
@@ -76,6 +123,7 @@ create_console :: proc(){
         textfield := ui.create_textfield("textfield1", "", rl.Vector2{0, 0}, rl.Vector2{0.100, 40})
         textfield.input = console_text_input
         textfield.margin={5, 2.5, 5, 2.5}
+        textfield.args[ui.carg.STEP] = 0
         textfield.reference=textarea
         textfield.action=enter_command
         focused_component=textfield
