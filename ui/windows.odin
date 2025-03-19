@@ -29,7 +29,8 @@ moveMode :: enum {
     MOVE_NONE,
     MOVE_RESIZE_LEFT,
     MOVE_RESIZE_RIGHT,
-    MOVE_MOVE
+    MOVE_MOVE,
+    MOVE_COMPONENT,
 }
 
 windowFlags :: enum {
@@ -65,6 +66,7 @@ animationFlags :: enum {
 window :: struct {
     origin: rl.Vector2,
     size: rl.Vector2,
+    minsize: rl.Vector2,
     name: cstring,
     flags: [len(windowFlags)]bool,
     scrollable: bool,
@@ -138,6 +140,7 @@ createWindow :: proc(pos: rl.Vector2, size: rl.Vector2, name: cstring) -> ^windo
     w := new(window)
     w.origin = pos
     w.size = size
+    w.minsize = size
     w.name = name
     if windows_head == nil {
         windows_head = w
@@ -147,6 +150,7 @@ createWindow :: proc(pos: rl.Vector2, size: rl.Vector2, name: cstring) -> ^windo
         w.previous = windows_tail
         windows_tail = w
     }
+    makeHead(w)
     return w
 }
 
@@ -233,17 +237,17 @@ drawWindows :: proc() {
     if move_mode == .MOVE_MOVE {
         w.origin = mousepos + move_offset
     } else if move_mode == .MOVE_RESIZE_RIGHT {
-        w.size.x = max(200, min(screensize.x - w.origin.x, mousepos.x - w.origin.x - move_offset.x))
-        w.size.y = max(200, min(screensize.y - w.origin.y, mousepos.y - w.origin.y - move_offset.y))
+        w.size.x = max(w.minsize.x, min(screensize.x - w.origin.x, mousepos.x - w.origin.x - move_offset.x))
+        w.size.y = max(w.minsize.y, min(screensize.y - w.origin.y, mousepos.y - w.origin.y - move_offset.y))
     } else if move_mode == .MOVE_RESIZE_LEFT {
         neworigin:= max(0, mousepos.x - move_offset.x)
         w.size.x = w.size.x + w.origin.x - neworigin
-        if w.size.x < 200 {
-            neworigin -= 200 - w.size.x
-            w.size.x = 200
+        if w.size.x < w.minsize.x {
+            neworigin -= w.minsize.x - w.size.x
+            w.size.x = w.minsize.x
         }
         w.origin.x = neworigin
-        w.size.y = max(200, min(screensize.y - w.origin.y, - w.origin.y + mousepos.y - move_offset.y))
+        w.size.y = max(w.minsize.y, min(screensize.y - w.origin.y, - w.origin.y + mousepos.y - move_offset.y))
     }
     w = windows_tail
     for w != nil {
@@ -257,6 +261,9 @@ drawWindows :: proc() {
             if w.origin.x < 0 {
                 w.origin.x = 0
             } else if w.origin.x + w.size.x > screensize.x {
+                if w.size.x > screensize.x {
+                    w.size.x = screensize.x
+                }
                 w.origin.x = screensize.x - w.size.x
             }
             if w.origin.y < 0 {
@@ -264,8 +271,11 @@ drawWindows :: proc() {
             } else if w.origin.y + headersize > screensize.y {
                 w.origin.y = screensize.y - headersize
             }
-            w.size.x = max(w.size.x, 200)
-            w.size.y = max(w.size.y, 200)
+            if w.size.y > screensize.y {
+                w.size.y = screensize.y
+            }
+            w.size.x = max(w.size.x, w.minsize.x)
+            w.size.y = max(w.size.y, w.minsize.y)
             w.content_origin = w.origin
             w.content_size = w.size
         }

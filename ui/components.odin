@@ -19,6 +19,8 @@ carg::enum{
     HOVER_COLOR,
     CHECKED,
     CENTERED,
+    SCROLL,
+    SCROLLAMOUNT,
 }
 
 stack_mode::enum{
@@ -45,6 +47,15 @@ component::struct{
     args: map[carg]defs.data_union,
     stack: stack_mode,
     reference: ^component,
+    entries: ^entry
+}
+
+entry::struct {
+    text: string,
+    origin: rl.Vector2,
+    size: rl.Vector2,
+    rgb: ^rl.Color,
+    next: ^entry,
 }
 
 add_component::proc(w: ^window, c: ^component){

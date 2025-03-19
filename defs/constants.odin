@@ -10,5 +10,5 @@ data_union :: union {
     f32,
     rl.Vector3,
     rl.Color,
-    int
+    int,
 }

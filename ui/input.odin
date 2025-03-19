@@ -4,18 +4,28 @@ import "core:fmt"
 
 handleInput := proc(keyname: string, action: user_action, pressed: bool) {
     w := windows_head
+    if rl.IsKeyPressed(.GRAVE) {
+        create_console()
+    }
     if cursor_enabled {
         if rl.IsKeyPressed(.K) {
             rl.SetWindowSize(800, 600)
         }
+        left, right, wheel := false, false, false
         if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonReleased(.LEFT) {
+            left = true
+        }
+        else if rl.IsMouseButtonPressed(.RIGHT) || rl.IsMouseButtonReleased(.RIGHT) {
+            right = true
+        }
+        if left || right {
             if(pressed){
                 w:=hover_window
                 if(w==nil){
                     return
                 }
                 makeHead(w)
-                if(isPointInsideHeader(mousepos, w)){
+                if(isPointInsideHeader(mousepos, w) && left){
                     if mousepos.x >= w.content_origin.x+w.content_size.x-headersize {
                         closeWindow(w)
                         hover_window = nil
@@ -26,14 +36,26 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                     move_offset.y-=headersize
                 }
                 else{
-                    move_mode=.MOVE_NONE
-                    if mousepos.x <= w.content_origin.x+edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize{
-                        move_offset = mousepos - w.content_origin - {0, w.content_size.y}
-                        move_mode=.MOVE_RESIZE_LEFT
-                    } else if mousepos.x >= w.content_origin.x+w.content_size.x-edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize {
-                        move_offset = mousepos - w.content_origin - w.content_size
-                        move_mode=.MOVE_RESIZE_RIGHT
-                    } else {
+                    if left {
+                        move_mode=.MOVE_NONE
+                        if mousepos.x <= w.content_origin.x+edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize{
+                            move_offset = mousepos - w.content_origin - {0, w.content_size.y}
+                            move_mode=.MOVE_RESIZE_LEFT
+                        } else if mousepos.x >= w.content_origin.x+w.content_size.x-edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize {
+                            move_offset = mousepos - w.content_origin - w.content_size
+                            move_mode=.MOVE_RESIZE_RIGHT
+                        } else {
+                            focused_component = nil
+                            for c:=w.components;c!=nil;c=c.next{
+                                if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
+                                    focused_component = c
+                                    c.input(c, action, pressed)
+                                    break
+                                }
+                            }
+                        }
+                    }
+                    else if right {
                         focused_component = nil
                         for c:=w.components;c!=nil;c=c.next{
                             if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
@@ -52,15 +74,20 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                 }
             }
         } else if rl.GetMouseWheelMove() != 0 && hover_window!=nil {
+            focused_component = nil
+            for c:=w.components;c!=nil;c=c.next{
+                if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
+                    focused_component = c
+                    if c.args[carg.SCROLL] != nil && c.args[carg.SCROLL].(bool){
+                        c.input(c, action, pressed)
+                        return
+                    }
+                    break
+                }
+            }
             w:=hover_window
             if(w.scrollable){
-                w.scroll -= rl.GetMouseWheelMove()*0.02
-                if(w.scroll > 1.0){
-                    w.scroll = 1.0
-                }
-                if(w.scroll < 0.0){
-                    w.scroll = 0.0
-                }
+                w.scroll = rl.Clamp(w.scroll - rl.GetMouseWheelMove()*0.02, 0.0, 1.0)
             }
         }
         else{
@@ -113,6 +140,7 @@ action_names := map[string]user_action{
 }
 
 key_map := map[string]rl.KeyboardKey{
+    "GRAVE" = .GRAVE,
     "UP" = .UP,
     "DOWN" = .DOWN,
     "LEFT" = .LEFT,
