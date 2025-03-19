@@ -223,11 +223,13 @@ bindKeyToAction := proc(key: string, action: user_action) {
     if key in key_map {
         k := key_map[key]
         button_keybinds[k] = action
+        console_log("Bound key: [", key, "] to action: [", action, "]")
     } else if key in mouse_button_map {
         k := mouse_button_map[key]
         mouse_button_keybinds[k] = action
+        console_log("Bound key: [", key, "] to action: [", action, "]")
     } else{
-        fmt.println("Unknown key: ", key)
+        console_error("Invalid key: [", key, "]")
     }
 }
 

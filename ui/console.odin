@@ -8,6 +8,23 @@ import sto "core:strings"
 
 history: ^component = nil
 console_window : ^window = nil
+console_location := rl.Vector2{250, 250}
+console_size := rl.Vector2{500, 500+ui.headersize}
+
+console_log :: proc(args: ..any, sep := " ", flush := true) {
+    fmt.println(..args)
+    ui.add_entry(history, fmt.aprint(..args), rl.Color{0,0,0,0})
+}
+
+console_error :: proc(args: ..any, sep := " ", flush := true) {
+    fmt.println(..args)
+    ui.add_entry(history, fmt.aprint(..args), rl.RED)
+}
+
+console_warn :: proc(args: ..any, sep := " ", flush := true) {
+    fmt.println(..args)
+    ui.add_entry(history, fmt.aprint(..args), rl.YELLOW)
+}
 
 fill_textfield :: proc(self: ^ui.component, arg: defs.data_union){
 	if self.reference != nil {
@@ -34,6 +51,11 @@ console_text_input :: proc(self: ^component, action: user_action, pressed: bool)
     return true
 }
 
+update_console :: proc(self: ^window){
+    console_location=self.origin
+    console_size=self.size    
+}
+
 
 create_console :: proc(){
     if history == nil {
@@ -41,19 +63,10 @@ create_console :: proc(){
         return
     }
     if console_window == nil {
-        console_window = createWindow(screensize/2-rl.Vector2{250, 250}, rl.Vector2{500, 500+ui.headersize}, "console")
+        console_window = createWindow(console_location, console_size, "console")
         w:= console_window
+        w.render = update_console
         textarea := ui.create_textarea("textarea1", rl.Vector2{0, 0}, rl.Vector2{0.100, -55.100})
-        i:=0
-        for i < 20 {
-            text := "text text text text text text text text text text text text text text text text "
-            i+=1
-            color := rl.Color{u8(255), u8(0), u8(0), 255}
-            if i%2 == 0 && i>13{
-                color = rl.Color{u8(0), u8(255), u8(0), 255}
-            }
-            add_entry(history, text, color)
-        }
         textarea.entries=history.entries
         textarea.margin={5, 5, 5, 2.5}
         textarea.args[ui.carg.BACKGROUND] = rl.Color{255, 255, 200, 255}

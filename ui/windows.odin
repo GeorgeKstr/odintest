@@ -76,7 +76,7 @@ window :: struct {
     components: ^component,
     next: ^window,
     previous: ^window,
-    draw: proc(),
+    render: proc(self: ^window),
     input: proc(self: ^window, user_action: user_action, pressed: bool) -> bool,
     args: map[string]defs.data_union,
 }
@@ -187,8 +187,10 @@ closeWindow :: proc(w: ^window) {
 
     w.next = nil
     w.previous = nil
+    if console_window == w {
+        console_window = nil
+    }
     free(w)  // Free window memory
-    console_window = nil
     fmt.println("closed window")
 }
 
@@ -332,6 +334,9 @@ drawWindows :: proc() {
         }
         content_start:=rl.Vector2{w.content_origin.x, w.content_origin.y}
         content_start.y -= w.content_size.y*(scrollAmount-1.0)*w.scroll
+        if w.render != nil {
+            w.render(w)
+        }
         horizontal_start := content_start
         for c := w.components; c != nil; c = c.next {
             c.content_origin = content_start

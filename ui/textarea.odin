@@ -83,7 +83,7 @@ textarea_render::proc(self: ^component){
         line_to_print:=""
         line.origin = self.content_origin + rl.Vector2{0, f32(y*defs.header_fontsize)-total_offset}
         if line.rgb != nil{
-            draw_rectangle(line.origin, rl.Vector2{self.content_size.x, line.size.y}, line.rgb^, 0.3)
+            draw_rectangle(line.origin, rl.Vector2{self.content_size.x, line.size.y}, line.rgb^, f32(line.rgb^.a)/255.0)
         }
         if len(words) == 1 {
             draw_text(sto.clone_to_cstring(line.text), ui_font, self.content_origin + rl.Vector2{text_offset, f32(y*defs.header_fontsize)-total_offset}, rl.BLACK, 1.0)
@@ -166,7 +166,7 @@ add_entry::proc(self: ^component, text: string, color: rl.Color){
     color2.r = color.r
     color2.g = color.g
     color2.b = color.b
-    color2.a = 255
+    color2.a = color.a
     entry.rgb = color2
     entry.next = nil
 
