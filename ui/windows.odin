@@ -41,26 +41,26 @@ windowFlags :: enum {
     W_RELATIVETOSCREEN,
     W_NOHEAD,
     W_NOSCROLLBAR,
-    W_BLOCKINPUT
+    W_BLOCKINPUT,
 }
 
 stackFlags :: enum {
     STACK_BLOCK,
     STACK_INLINE,
     STACK_GHOST,
-    STACK_ABSOLUTE
+    STACK_ABSOLUTE,
 }
 
 alignFlags :: enum {
     ALIGN_LEFT,
     ALIGN_CENTER,
-    ALIGN_RIGHT
+    ALIGN_RIGHT,
 }
 
 animationFlags :: enum {
     ANIMATION_NONE,
     ANIMATION_FADEIN,
-    ANIMATION_FADEOUT
+    ANIMATION_FADEOUT,
 }
 
 window :: struct {
@@ -78,7 +78,7 @@ window :: struct {
     previous: ^window,
     draw: proc(),
     input: proc(self: ^window, user_action: user_action, pressed: bool) -> bool,
-    args: map[string]defs.data_union
+    args: map[string]defs.data_union,
 }
 
 entity :: struct {
@@ -92,7 +92,7 @@ entity :: struct {
     previous: ^entity,
     container: ^window,
     handles_input: bool,
-    is_active: bool
+    is_active: bool,
 }
 
 setScreenValues :: proc(vwidth: f32, vheight: f32) {
@@ -108,8 +108,7 @@ isPointInsideBox :: proc(pos: rl.Vector2, origin: rl.Vector2, size: rl.Vector2) 
 isPointInsideHeader :: proc(pos: rl.Vector2, w: ^window) -> bool {
     if(w.flags[windowFlags.W_NOHEADER] || w.flags[windowFlags.W_NORESIZE] || w.flags[windowFlags.W_RELATIVETOSCREEN]) {
         return false        
-    }
-    else{
+    } else {
         if(isPointInsideBox(pos, w.origin, rl.Vector2{w.size.x, headersize})){
             return true
         }
@@ -155,8 +154,27 @@ createWindow :: proc(pos: rl.Vector2, size: rl.Vector2, name: cstring) -> ^windo
 }
 
 closeWindow :: proc(w: ^window) {
+    if w == nil {
+        return // Already closed or invalid
+    }
+    
+    // Remove all components safely
+    c := w.components
+    for c != nil {
+        next_c := c.next
+        c.next = nil
+        c.previous = nil
+        free(c) // Free each component
+        c = next_c
+    }
+    w.components = nil
+
+    // Remove from window list
     if windows_head == w {
         windows_head = w.next
+    }
+    if windows_tail == w {
+        windows_tail = w.previous
     }
     if w.next != nil {
         w.next.previous = w.previous
@@ -164,8 +182,16 @@ closeWindow :: proc(w: ^window) {
     if w.previous != nil {
         w.previous.next = w.next
     }
-    free(w)
+    
+    fmt.println("closing window", w.name)
+
+    w.next = nil
+    w.previous = nil
+    free(w)  // Free window memory
+    console_window = nil
+    fmt.println("closed window")
 }
+
 
 makeHead :: proc(w: ^window) {
     if w==nil {
@@ -295,7 +321,7 @@ drawWindows :: proc() {
             scrollbarSize := rl.Vector2{scrollsize - 2, w.content_size.y / scrollAmount - 2}
             scrollbarPos := rl.Vector2{
                 w.content_origin.x + w.content_size.x - scrollsize + 1,
-                w.content_origin.y + 1+(w.content_size.y - scrollbarSize.y - 1) * w.scroll
+                w.content_origin.y + 1+(w.content_size.y - scrollbarSize.y - 1) * w.scroll,
             }
             draw_rectangle(scrollbarPos, scrollbarSize, scrollbar_color, 1.0 * walpha)
             w.content_size.x -= scrollsize
@@ -334,7 +360,7 @@ drawWindows :: proc() {
                     i32(c.content_origin.x),
                     i32(max(c.content_origin.y, w.content_origin.y)),
                     i32(min(c.content_size.x, w.content_origin.x + w.content_size.x - c.content_origin.x)),
-                    i32(min(c.content_origin.y + c.content_size.y, w.content_origin.y + w.content_size.y) - max(c.content_origin.y, w.content_origin.y))
+                    i32(min(c.content_origin.y + c.content_size.y, w.content_origin.y + w.content_size.y) - max(c.content_origin.y, w.content_origin.y)),
                 )
                 c.render(c)
                 rl.EndScissorMode()

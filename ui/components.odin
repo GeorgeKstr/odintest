@@ -28,7 +28,7 @@ stack_mode::enum{
     HORIZONTAL,
     GHOST,
     RELATIVE,
-    RELATIVE_HORIZONTAL
+    RELATIVE_HORIZONTAL,
 }
 
 component::struct{
@@ -47,7 +47,7 @@ component::struct{
     args: map[carg]defs.data_union,
     stack: stack_mode,
     reference: ^component,
-    entries: ^entry
+    entries: ^entry,
 }
 
 entry::struct {

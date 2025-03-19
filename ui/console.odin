@@ -41,10 +41,9 @@ create_console :: proc(){
         return
     }
     if console_window == nil {
-        console_window = createWindow(rl.Vector2{5, 5}, rl.Vector2{500, 200+ui.headersize}, "console")
+        console_window = createWindow(screensize/2-rl.Vector2{250, 250}, rl.Vector2{500, 500+ui.headersize}, "console")
         w:= console_window
         textarea := ui.create_textarea("textarea1", rl.Vector2{0, 0}, rl.Vector2{0.100, -55.100})
-        textarea.entries = history.entries
         i:=0
         for i < 20 {
             text := "text text text text text text text text text text text text text text text text "
@@ -53,8 +52,9 @@ create_console :: proc(){
             if i%2 == 0 && i>13{
                 color = rl.Color{u8(0), u8(255), u8(0), 255}
             }
-            ui.add_entry(history, text, color)
+            add_entry(history, text, color)
         }
+        textarea.entries=history.entries
         textarea.margin={5, 5, 5, 2.5}
         textarea.args[ui.carg.BACKGROUND] = rl.Color{255, 255, 200, 255}
         textarea.action=fill_textfield
@@ -65,11 +65,13 @@ create_console :: proc(){
         textfield.margin={5, 2.5, 5, 2.5}
         textfield.reference=textarea
         textfield.action=enter_command
+        focused_component=textfield
         ui.add_component(w, textfield)
 
         textarea.reference=textfield
     } else {
         if windows_head == console_window {
+            closeWindow(console_window)
         } else {
             makeHead(console_window)
         }

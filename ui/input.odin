@@ -6,6 +6,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
     w := windows_head
     if rl.IsKeyPressed(.GRAVE) {
         create_console()
+        return
     }
     if cursor_enabled {
         if rl.IsKeyPressed(.K) {
@@ -14,8 +15,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
         left, right, wheel := false, false, false
         if rl.IsMouseButtonPressed(.LEFT) || rl.IsMouseButtonReleased(.LEFT) {
             left = true
-        }
-        else if rl.IsMouseButtonPressed(.RIGHT) || rl.IsMouseButtonReleased(.RIGHT) {
+        } else if rl.IsMouseButtonPressed(.RIGHT) || rl.IsMouseButtonReleased(.RIGHT) {
             right = true
         }
         if left || right {
@@ -34,8 +34,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                     move_mode=.MOVE_MOVE
                     move_offset=w.content_origin - mousepos
                     move_offset.y-=headersize
-                }
-                else{
+                } else{
                     if left {
                         move_mode=.MOVE_NONE
                         if mousepos.x <= w.content_origin.x+edgesize && mousepos.y >= w.content_origin.y + w.content_size.y - edgesize - headersize{
@@ -54,8 +53,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                                 }
                             }
                         }
-                    }
-                    else if right {
+                    } else if right {
                         focused_component = nil
                         for c:=w.components;c!=nil;c=c.next{
                             if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
@@ -66,8 +64,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                         }
                     }
                 }
-            }
-            else{
+            } else{
                 move_mode=.MOVE_NONE
                 if focused_component!=nil{
                     focused_component.input(focused_component, action, pressed)
@@ -89,13 +86,12 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
             if(w.scrollable){
                 w.scroll = rl.Clamp(w.scroll - rl.GetMouseWheelMove()*0.02, 0.0, 1.0)
             }
-        }
-        else{
+        } else{
             if(focused_component!=nil){
                 focused_component.input(focused_component, action, pressed)
             }
         }
-        return;
+        return
     }
     move_mode=.MOVE_NONE
 }
@@ -216,7 +212,7 @@ mouse_button_map := map[string]rl.MouseButton{
     "MOUSE_RIGHT" = .RIGHT,
     "MOUSE_MIDDLE" = .MIDDLE,
     "MOUSE_SCROLL_DOWN" = .FORWARD,
-    "MOUSE_SCROLL_UP" = .BACK
+    "MOUSE_SCROLL_UP" = .BACK,
 }
 
 mouse_button_keybinds := make(map[rl.MouseButton]user_action)
@@ -230,8 +226,7 @@ bindKeyToAction := proc(key: string, action: user_action) {
     } else if key in mouse_button_map {
         k := mouse_button_map[key]
         mouse_button_keybinds[k] = action
-    }
-    else{
+    } else{
         fmt.println("Unknown key: ", key)
     }
 }

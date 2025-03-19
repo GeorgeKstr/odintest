@@ -71,8 +71,7 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
         }
         if rl.IsMouseButtonPressed(.LEFT) {
             self.args[carg.CARET] = len(text)
-        }
-        else if(key >= 32 && key <= 126 || key >= 48 && key <= 57){
+        } else if(key >= 32 && key <= 126 || key >= 48 && key <= 57){
             builder := sto.builder_make()
             caret, ok := self.args[carg.CARET].(int)
             if !ok {
@@ -93,8 +92,7 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             newtext := sto.to_string(builder)
             text = sto.concatenate([]string{textbefore, newtext, textafter})
             self.args[carg.CARET] = caret + 1
-        }
-        else if rl.IsKeyDown(.LEFT) {
+        } else if rl.IsKeyDown(.LEFT) {
             if(buttontime > rl.GetTime()){
                 return true
             }
@@ -108,9 +106,8 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
                 caret = 0
             }
             self.args[carg.CARET] = caret
-        }
-        else if rl.IsKeyDown(.RIGHT) {
-            if(buttontime > rl.GetTime()){
+        } else if rl.IsKeyDown(.RIGHT) {
+            if buttontime > rl.GetTime() {
                 return true
             }
             buttontime = rl.GetTime() + 0.1
@@ -127,8 +124,7 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
                 caret = len(text)
             }
             self.args[carg.CARET] = caret
-        }
-        else if rl.IsKeyDown(.BACKSPACE) {
+        } else if rl.IsKeyDown(.BACKSPACE) {
             if(buttontime > rl.GetTime()){
                 return true
             }
@@ -149,8 +145,7 @@ textfield_input::proc(self: ^component, action: user_action, pressed: bool) -> b
             }
             text = sto.concatenate([]string{textbefore, textafter})
             self.args[carg.CARET] = caret - 1
-        }
-        else if rl.IsKeyDown(.ENTER) {
+        } else if rl.IsKeyDown(.ENTER) {
             text, ok := self.args[carg.TEXT].(string)
             if !ok || len(text) == 0 {
                 return true

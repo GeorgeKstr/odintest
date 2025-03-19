@@ -24,8 +24,7 @@ calculate_lines::proc(self : ^component) -> f32{
                 word_width := rl.MeasureTextEx(ui_font, cword, f32(defs.header_fontsize), 0).x
                 if i>=len(words)-1 {
                     x=text_offset
-                }
-                else if text_offset+x+word_width > self.content_size.x {
+                } else if text_offset+x+word_width > self.content_size.x {
                     x=word_width
                     y+=1 
                 } else {
@@ -98,8 +97,7 @@ textarea_render::proc(self: ^component){
                     line_to_print = word
                     x=word_width
                     y+=1 
-                }
-                else if i>=len(words)-1 {
+                } else if i>=len(words)-1 {
                     line_to_print = sto.concatenate([]string{line_to_print, " ", word})
                     draw_text(sto.clone_to_cstring(line_to_print), ui_font, self.content_origin + rl.Vector2{text_offset, f32(y*defs.header_fontsize)-total_offset}, rl.BLACK, 1.0)
                     x=text_offset
@@ -138,8 +136,7 @@ textarea_input::proc(self: ^component, action: user_action, pressed: bool) -> bo
             }
             line = line.next
         }
-    } 
-    else if isPointInsideBox(mousepos, self.content_origin, self.content_size) && rl.GetMouseWheelMove() != 0 && self.args[carg.SCROLL] != nil && self.args[carg.SCROLL].(bool){
+    } else if isPointInsideBox(mousepos, self.content_origin, self.content_size) && rl.GetMouseWheelMove() != 0 && self.args[carg.SCROLL] != nil && self.args[carg.SCROLL].(bool){
         scroll, ok := self.args[carg.SCROLLAMOUNT].(f32)
         if !ok {
             scroll = f32(0)

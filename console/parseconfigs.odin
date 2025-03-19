@@ -18,12 +18,12 @@ parse_file_for_cvars :: proc(filepath: string) {
 
 	it := string(data)
 	    for line in strings.split_lines_iterator(&it) {
-        data := strings.split(line, " ");
+        data := strings.split(line, " ")
         if console.isCommand(data[0]) {
-            console.executeCommand(line);
+            console.executeCommand(line)
 			fmt.println("Executed command: ", data[0])
         } else {
-            console.setCvar(data[0], data[1]);
+            console.setCvar(data[0], data[1])
         }
 	}
 }
