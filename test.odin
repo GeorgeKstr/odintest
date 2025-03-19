@@ -3,6 +3,7 @@ package odintest
 import rl "vendor:raylib"
 import "defs"
 import "ui"
+import io "fileio"
 import "core:fmt"
 import "core:os"
 import "console"
@@ -81,7 +82,7 @@ main :: proc() {
 	rl.InitWindow(1280, 720, "test")
 	rl.SetTextLineSpacing(12)
 	rl.SetTargetFPS(60)
-	console.initializeConsoleVars()
+	initialize_all()
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLUE)
@@ -90,7 +91,7 @@ main :: proc() {
 		rl.EndDrawing()
 	}
 	rl.UnloadFont(ui.ui_font)
-	ui.unload_textures()
+	io.unload_textures()
 	console.clearConsole()
 	ui.clearInput()
 	rl.CloseWindow()

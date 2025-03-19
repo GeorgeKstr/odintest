@@ -1,10 +1,8 @@
 package console
 
-import "../console"
 import "core:os"
 import "core:fmt"
 import "core:strings"
-import "../ui"
 
 
 
@@ -12,7 +10,7 @@ parse_file_for_cvars :: proc(filepath: string) {
 	fmt.printf("Attempting to parse file: %s...\n", filepath)
 	data, ok := os.read_entire_file(filepath, context.allocator)
 	if !ok {
-		ui.console_error("Failed to read file: ", filepath)
+		console_error("Failed to read file: ", filepath)
 		return
 	}
 	defer delete(data, context.allocator)
@@ -21,10 +19,10 @@ parse_file_for_cvars :: proc(filepath: string) {
 	    for line in strings.split_lines_iterator(&it) {
         data := strings.split(line, " ")
 		if len(data) >1 {
-			if console.isCommand(data[0]) {
-				console.executeCommand(line)
+			if isCommand(data[0]) {
+				executeCommand(line)
 			} else {
-				console.setCvar(data[0], data[1])
+				setCvar(data[0], data[1])
 			}
 		}
 	}

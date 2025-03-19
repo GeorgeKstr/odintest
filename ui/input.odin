@@ -1,6 +1,7 @@
 package ui
 import rl "vendor:raylib"
 import "core:fmt"
+import "../console"
 
 handleInput := proc(keyname: string, action: user_action, pressed: bool) {
     w := windows_head
@@ -223,13 +224,13 @@ bindKeyToAction := proc(key: string, action: user_action) {
     if key in key_map {
         k := key_map[key]
         button_keybinds[k] = action
-        console_log("Bound key: [", key, "] to action: [", action, "]")
+        console.console_log("Bound key: [", key, "] to action: [", action, "]")
     } else if key in mouse_button_map {
         k := mouse_button_map[key]
         mouse_button_keybinds[k] = action
-        console_log("Bound key: [", key, "] to action: [", action, "]")
+        console.console_log("Bound key: [", key, "] to action: [", action, "]")
     } else{
-        console_error("Invalid key: [", key, "]")
+        console.console_error("Invalid key: [", key, "]")
     }
 }
 
