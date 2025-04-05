@@ -46,13 +46,13 @@ registerCvar :: proc(name: string, type: cvarType, default_value, description: s
         description = description,
     }
     cvarRegistry.cvars[name] = cvar
-    console_log("Registered cvar: [", name, "]")
+    log("Registered cvar: [", name, "]")
 }
 
 setCvar :: proc(name: string, value: string) {
     cvar, found := cvarRegistry.cvars[name]
     if !found {
-        console_error("Error: Cvar [", name, "] not found")
+        log_error("Error: Cvar [", name, "] not found")
         return
     }
     switch cvar.type {
@@ -61,7 +61,7 @@ setCvar :: proc(name: string, value: string) {
         if err != true {
             cvar.value = val
         } else {
-            console_error("Invalid value for cvar [", cvar.name, "]: '", value, "', expected: boolean")
+            log_error("Invalid value for cvar [", cvar.name, "]: '", value, "', expected: boolean")
             cvar.value = cvar.defaultValue
         }
     case cvarType.float:
@@ -69,7 +69,7 @@ setCvar :: proc(name: string, value: string) {
         if err != true {
             cvar.value = val
         } else {
-            console_error("Invalid value for cvar [", cvar.name, "]: '", value, "', expected: float")
+            log_error("Invalid value for cvar [", cvar.name, "]: '", value, "', expected: float")
             cvar.value = cvar.defaultValue
         }
     case cvarType.int:
@@ -77,7 +77,7 @@ setCvar :: proc(name: string, value: string) {
         if err != true {
             cvar.value = val
         } else {
-            console_error("Invalid value for cvar [", cvar.name, "]: '", value, "', expected: integer")
+            log_error("Invalid value for cvar [", cvar.name, "]: '", value, "', expected: integer")
             cvar.value = cvar.defaultValue
         }
     case cvarType.string:
@@ -101,7 +101,7 @@ registerCommand :: proc(name: string, execute: proc(args: []string), description
         argsCount = argsCount,
     }
     cvarRegistry.commands[name] = command
-    console_log("Registered command: [", name, "]")
+    log("Registered command: [", name, "]")
 }
 
 executeCommand :: proc(input: string) {
@@ -109,12 +109,12 @@ executeCommand :: proc(input: string) {
     commandName := tokens[0]
     args := tokens[1:]
     if !(commandName in cvarRegistry.commands) {
-        console_error("Error: Command: [", commandName, "] not found")
+        log_error("Error: Command: [", commandName, "] not found")
         return
     }
     command := cvarRegistry.commands[commandName]
     if len(args) != int(command.argsCount) {
-        console_error("Error: Command [", commandName, "] expects ", command.argsCount, " arguments, but got ", len(args))
+        log_error("Error: Command [", commandName, "] expects ", command.argsCount, " arguments, but got ", len(args))
         return
     }
     command.execute(args)

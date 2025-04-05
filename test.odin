@@ -7,6 +7,10 @@ import io "fileio"
 import "core:fmt"
 import "core:os"
 import "console"
+import "networking"
+
+is_server := false
+is_client := false
 
 fill_console :: proc(self: ^ui.component, arg: defs.data_union){
 	if self.reference != nil {
@@ -86,6 +90,9 @@ main :: proc() {
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.BLUE)
+		if is_server {
+			networking.server_listen()
+		}
 		ui.drawWindows()
 		ui.checkInput()
 		rl.EndDrawing()

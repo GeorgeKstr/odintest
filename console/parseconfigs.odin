@@ -10,7 +10,7 @@ parse_file_for_cvars :: proc(filepath: string) {
 	fmt.printf("Attempting to parse file: %s...\n", filepath)
 	data, ok := os.read_entire_file(filepath, context.allocator)
 	if !ok {
-		console_error("Failed to read file: ", filepath)
+		log_error("Failed to read file: ", filepath)
 		return
 	}
 	defer delete(data, context.allocator)

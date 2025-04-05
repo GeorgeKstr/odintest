@@ -24,7 +24,7 @@ enter_command :: proc(self: ^component, arg: defs.data_union){
             return
         }
 		data := sto.split(line, " ")
-		if len(data) >1 {
+		if len(data) >0 {
 			if console.isCommand(data[0]) {
 				console.executeCommand(line)
 			} else {
