@@ -81,20 +81,6 @@ window :: struct {
     args: map[string]defs.data_union,
 }
 
-entity :: struct {
-    origin: rl.Vector2,
-    size: rl.Vector2,
-    flags: [len(stackFlags)]bool,
-    text: cstring,
-    draw: proc(),
-    input: proc() -> bool,
-    next: ^entity,
-    previous: ^entity,
-    container: ^window,
-    handles_input: bool,
-    is_active: bool,
-}
-
 setScreenValues :: proc(vwidth: f32, vheight: f32) {
     screensize = rl.Vector2{vwidth, vheight}
     ratio = screensize.x / screensize.y

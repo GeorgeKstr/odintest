@@ -6,6 +6,7 @@ import "defs"
 import rl "vendor:raylib"
 import "core:fmt"
 import "networking"
+import "core:strings"
 
 ui_log::proc (args: ..any, sep := " ", flush := true) {
     ui.add_entry(ui.history, fmt.aprint(..args), rl.Color{0,0,0,0})
@@ -37,8 +38,8 @@ initialize_all :: proc() {
         is_server = false
     }, "stops the server", 0)
     console.registerCommand("say", proc(args: []string) {
-        networking.client_talk(args[0])
-    }, "sends a message to the server", 1)
+        networking.client_talk(strings.join(args, " "))
+    }, "sends a message to the server", 999)
     console.parse_file_for_cvars("config.cfg")
     console.log_error("Initializing UI...")
     ui.ui_font = rl.LoadFontEx(defs.ui_font, defs.header_fontsize, nil, 0)

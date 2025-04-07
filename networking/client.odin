@@ -3,24 +3,42 @@ import "core:net"
 import "core:time"
 import "../console"
 import "core:fmt"
+import rl "vendor:raylib"
 
 initialized_client: bool = false
 client: ^Client
 
 client_listen :: proc() {
-    if client == nil {
-        init_client()
-    }
-    packet, from, err := receive_packet(client.socket)
-    if err == nil {
-        conn := client_establish_connection(client, from)
-        conn.last_seen = time.now()
-        client.last_received = time.now()
-        if packet.header.flags == Packet_Type.Reliable {
-            handle_ack(conn, packet.header.ack, packet.header.ack_bits)
-        }
-    }
+	if client == nil {
+		init_client()
+	}
 
+	packet, from, err := receive_packet(client.socket)
+	if err != nil || len(packet.data) == 0 {
+		return
+	}
+
+	conn := client_establish_connection(client, from)
+	conn.last_seen = rl.GetTime()
+	client.last_received = rl.GetTime()
+
+	if packet.header.flags == .Reliable {
+		seq := packet.header.sequence
+
+		if conn.received_acks[seq % 64] {
+			handle_ack(conn, packet.header.ack, packet.header.ack_bits)
+			return
+		}
+
+		conn.received_acks[seq % 64] = true
+
+		if seq > conn.recv_sequence {
+			conn.recv_sequence = seq
+		}
+
+		handle_ack(conn, packet.header.ack, packet.header.ack_bits)
+	}
+    resend_unacked_packets(conn, client.socket, 0.3)
 }
 
 client_talk :: proc(msg: string) {
@@ -28,7 +46,15 @@ client_talk :: proc(msg: string) {
         init_client()
     }
     conn := client_establish_connection(client, client.server_endpoint)
-    client.last_sent = time.now()
+    client.last_sent = rl.GetTime()
+    data := transmute([]u8)msg
+    message := Message{
+        message_type= .Chat,
+        sender= conn,
+        data= data,
+    }
+    msgs := []Message{message}
+    payload:= build_streamed_payload(msgs)
     packet := Packet{
         header = Packet_Header{
             sequence = conn.send_sequence,
@@ -37,8 +63,9 @@ client_talk :: proc(msg: string) {
             version = version,
             flags = Packet_Type.Reliable,
         },
-        data = nil,
+        data = payload,
     }
+    console.log("Sending message: ", msg)
     send_reliable_packet(client.socket, packet, conn)
 }
 
@@ -55,8 +82,8 @@ Client :: struct {
     connection: ^Connection,       // Reliable connection tracking (seq, ack, etc.)
 
     connected: bool,
-    last_received: time.Time,
-    last_sent: time.Time,
+    last_received: f64,
+    last_sent: f64,
 }
 
 
@@ -100,7 +127,7 @@ create_client :: proc(server_ip: net.Address, server_port: int) -> ^Client {
     client.server_endpoint = server_endpoint^
     client.connection = connection
     client.connected = false
-    client.last_received = time.now()
-    client.last_sent = time.now()
+    client.last_received = rl.GetTime()
+    client.last_sent = rl.GetTime()
     return client
 }

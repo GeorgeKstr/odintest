@@ -6,6 +6,7 @@ import "core:net"
 import "core:strings"
 import "core:container/queue"
 import "core:time"
+import rl "vendor:raylib"
 
 // Config
 version: u8 = 0x42
@@ -23,7 +24,7 @@ Connection :: struct {
 
     received_acks: [64]bool,
 	
-	last_seen: time.Time,
+	last_seen: f64,
     connected: bool,
 }
 
@@ -34,7 +35,7 @@ create_connection :: proc(from: net.Endpoint) -> ^Connection {
 	n.peer = from
 	n.send_sequence = 0
 	n.recv_sequence = 0
-	n.last_seen = time.now()
+	n.last_seen = rl.GetTime()
 	n.connected = true
 
 	return n
@@ -56,14 +57,13 @@ send_reliable_packet :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connec
 
     packet := packet
 	packet.header = header
-	fmt.println("AAAAAAAAAAAAAAAAAAAAAABBBBBBB")
 
 	encoded := encrypt(packet)
 	_, err := net.send_any(sock, encoded, conn.peer)
     conn.sent_packets[conn.send_sequence] = Sent_Packet{
         sequence = conn.send_sequence,
         data = encoded,
-        timestamp = time.now(),
+        timestamp = rl.GetTime(),
     }
 
     conn.send_sequence += 1
@@ -91,4 +91,16 @@ generate_ack_bits :: proc(conn: ^Connection) -> u32 {
     }
 
     return bits
+}
+
+resend_unacked_packets :: proc(conn: ^Connection, sock: net.UDP_Socket, timeout_ms: f64) {
+    now := rl.GetTime()
+
+    for seq, sent in conn.sent_packets {
+        if now - sent.timestamp > timeout_ms {
+            net.send_any(sock, sent.data, conn.peer)
+            sp := conn.sent_packets[seq]
+            sp.timestamp = now
+        }
+    }
 }

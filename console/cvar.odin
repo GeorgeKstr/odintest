@@ -113,7 +113,7 @@ executeCommand :: proc(input: string) {
         return
     }
     command := cvarRegistry.commands[commandName]
-    if len(args) != int(command.argsCount) {
+    if int(command.argsCount)!=999 && len(args) != int(command.argsCount) {
         log_error("Error: Command [", commandName, "] expects ", command.argsCount, " arguments, but got ", len(args))
         return
     }

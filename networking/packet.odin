@@ -3,18 +3,11 @@ package networking
 import "core:mem"
 import "core:time"
 import "core:fmt"
+import "../console"
 
 Packet_Type :: enum u8 {
 	Unreliable,
 	Reliable,
-}
-
-Message_Type: enum u8 {
-	Connect,
-	Disconnect,
-	Chat,
-	Input,
-	Update,
 }
 
 Packet_Header :: struct {
@@ -27,7 +20,7 @@ Packet_Header :: struct {
 
 Sent_Packet :: struct {
     sequence: u16,
-    timestamp: time.Time,
+    timestamp: f64,
     data: []u8,
 }
 
@@ -58,39 +51,40 @@ encrypt :: proc(p: Packet) -> []u8 {
 	for i in 0..<len(p.data) {
 		append(&out, p.data[i] ~ shared_key[i % len(shared_key)])
 	}
-
+	console.log("Sending packet: ", p)
 	return out[:]
 }
-
 
 decrypt :: proc(buf: [1024]u8) -> Packet {
 	p := Packet{}
 
-	if len(buf) < 11 {
+	if len(buf) < 10 {
 		fmt.println("decrypt: invalid buffer length")
 		return p
 	}
 
-	p.header.version      = buf[0]
-	p.header.flags        = cast(Packet_Type)(buf[1])
-	p.header.sequence     = (cast(u16)(buf[3]) << 8) | cast(u16)(buf[4])
-	p.header.ack          = (cast(u16)(buf[5]) << 8) | cast(u16)(buf[6])
+	p.header.version  = buf[0]
+	p.header.flags    = cast(Packet_Type)(buf[1])
 
-	// Reconstruct ack_bits from 4 bytes
+	p.header.sequence = (cast(u16)(buf[2]) << 8) | cast(u16)(buf[3])
+	p.header.ack      = (cast(u16)(buf[4]) << 8) | cast(u16)(buf[5])
+
 	p.header.ack_bits =
-		(cast(u32)(buf[7]) << 24) |
-		(cast(u32)(buf[8]) << 16) |
-		(cast(u32)(buf[9]) << 8)  |
-		cast(u32)(buf[10])
+		(cast(u32)(buf[6]) << 24) |
+		(cast(u32)(buf[7]) << 16) |
+		(cast(u32)(buf[8]) << 8)  |
+		cast(u32)(buf[9])
 
-	data_len := len(buf) - 11
+	data_len := len(buf) - 10
 	for i in 0..<data_len {
-		xor := buf[11 + i] ~ shared_key[i % len(shared_key)]
+		xor := buf[10 + i] ~ shared_key[i % len(shared_key)]
 		append(&p.data, xor)
 	}
 
+	console.log("Received packet: ", p)
 	return p
 }
+
 
 handle_ack :: proc(conn: ^Connection, ack: u16, ack_bits: u32) {
     delete_key(&conn.sent_packets, ack)
