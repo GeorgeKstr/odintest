@@ -92,6 +92,8 @@ main :: proc() {
 		rl.ClearBackground(rl.BLUE)
 		if is_server {
 			networking.server_listen()
+		} else {
+			networking.client_listen()
 		}
 		ui.drawWindows()
 		ui.checkInput()

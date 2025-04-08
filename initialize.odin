@@ -32,14 +32,35 @@ initialize_all :: proc() {
 
     console.registerCommand("server", proc(args: []string) {
         is_server = true
-        console.log("server called")
     }, "starts the server", 0)
     console.registerCommand("serveroff", proc(args: []string) {
         is_server = false
     }, "stops the server", 0)
     console.registerCommand("say", proc(args: []string) {
-        networking.client_talk(strings.join(args, " "))
+        payload:[dynamic]u8
+        append(&payload, ..networking.write_string("gamias")[:])
+        append(&payload, ..networking.write_string(strings.join(args, " "))[:])
+        message := networking.Message{
+            message_type= networking.Message_Type.Chat,
+            sender= nil,
+            data= payload[:],
+        }
+        packet_payload := networking.build_streamed_payload([]networking.Message{message})
+        packet := networking.Packet{
+            header = networking.Packet_Header{
+                sequence = 0,
+                ack = 0,
+                ack_bits = 0,
+                version = networking.version,
+                flags = networking.Packet_Type.Reliable,
+            },
+            data = packet_payload,
+        }
+        networking.send_reliable_packet(networking.client.socket, packet, networking.client_establish_connection(networking.client, networking.client.server_endpoint))
     }, "sends a message to the server", 999)
+    console.registerCommand("discover", proc(args: []string) {
+        networking.discover_servers(args[0])
+    }, "testing", 1)
     console.parse_file_for_cvars("config.cfg")
     console.log_error("Initializing UI...")
     ui.ui_font = rl.LoadFontEx(defs.ui_font, defs.header_fontsize, nil, 0)

@@ -206,6 +206,7 @@ key_map := map[string]rl.KeyboardKey{
     "7" = .SEVEN,
     "8" = .EIGHT,
     "9" = .NINE,
+    "." = .PERIOD,
 }
 
 mouse_button_map := map[string]rl.MouseButton{

@@ -121,7 +121,10 @@ executeCommand :: proc(input: string) {
 }
 
 isCommand :: proc(name: string) -> bool {
-    return name in cvarRegistry.commands
+    if name in cvarRegistry.commands {
+        return true
+    }  
+    return false
 }
 
 clearConsole :: proc() {

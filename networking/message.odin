@@ -7,6 +7,8 @@ import "core:mem"
 import "../console"
 
 Message_Type:: enum u8 {
+	Discover,
+	Serverinfo,
 	Connect,
 	Disconnect,
 	Chat,
@@ -32,7 +34,7 @@ build_streamed_payload :: proc(messages: []Message) -> [dynamic]u8 {
     return out
 }
 
-decode_streamed_payload :: proc(buf: [dynamic]u8) -> [dynamic]Message {
+decode_streamed_payload :: proc(buf: [dynamic]u8, conn: ^Connection) -> [dynamic]Message {
 	messages: [dynamic]Message
 	i := 0
 
@@ -42,7 +44,6 @@ decode_streamed_payload :: proc(buf: [dynamic]u8) -> [dynamic]Message {
 		}
 
 		msg_type := cast(Message_Type)(buf[i])
-		console.log("Message type: ", msg_type)
 		length := (u16(buf[i+1]) << 8) | u16(buf[i+2])
 		i += 3
 
@@ -56,9 +57,39 @@ decode_streamed_payload :: proc(buf: [dynamic]u8) -> [dynamic]Message {
 		msg := Message{
 			message_type = msg_type,
 			data = data,
+			sender = conn,
 		}
 		append(&messages, msg)
 	}
 
 	return messages
+}
+
+write_string :: proc(str: string) -> []u8 {
+	out : [dynamic]u8
+	length := len(str)
+	append(&out, cast(u8)(length >> 8))
+	append(&out, cast(u8)(length & 0xFF))
+	append(&out, ..transmute([]u8)str[:])
+	return out[:]
+}
+
+read_string :: proc(buf: ^[]u8) -> string {
+	length := (u16((buf^)[0]) << 8) | u16((buf^)[1])
+	result := string((buf^)[2 : 2 + int(length)])
+	buf^ = (buf^)[2 + int(length) : ]
+	return result
+}
+
+write_u16 :: proc(num: u16) -> []u8 {
+	out : [dynamic]u8
+	append(&out, cast(u8)(num >> 8))
+	append(&out, cast(u8)(num & 0xFF))
+	return out[:]
+}
+
+read_u16 :: proc(buf: ^[]u8) -> u16 {
+	result := (u16((buf^)[0]) << 8) | u16((buf^)[1])
+	buf^ = (buf^)[2 : ]
+	return result
 }

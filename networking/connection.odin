@@ -54,7 +54,6 @@ send_reliable_packet :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connec
         ack = conn.recv_sequence,
         ack_bits = generate_ack_bits(conn),
     }
-
     packet := packet
 	packet.header = header
 

@@ -28,7 +28,11 @@ enter_command :: proc(self: ^component, arg: defs.data_union){
 			if console.isCommand(data[0]) {
 				console.executeCommand(line)
 			} else {
-				console.setCvar(data[0], data[1])
+                if len(data)>1 {
+                    console.setCvar(data[0], data[1])
+                } else {
+                    console.log("Error: Command [", data[0], "] not found")
+                }
 			}
 		}
 		self.args[carg.TEXT] = ""

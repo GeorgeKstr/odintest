@@ -51,7 +51,7 @@ encrypt :: proc(p: Packet) -> []u8 {
 	for i in 0..<len(p.data) {
 		append(&out, p.data[i] ~ shared_key[i % len(shared_key)])
 	}
-	console.log("Sending packet: ", p)
+	//console.log("Sending packet: ", p)
 	return out[:]
 }
 
@@ -80,8 +80,6 @@ decrypt :: proc(buf: [1024]u8) -> Packet {
 		xor := buf[10 + i] ~ shared_key[i % len(shared_key)]
 		append(&p.data, xor)
 	}
-
-	console.log("Received packet: ", p)
 	return p
 }
 

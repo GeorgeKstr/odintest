@@ -6,25 +6,29 @@ import "core:container/queue"
 import "core:fmt"
 import rl "vendor:raylib"
 
+Server :: struct {
+	socket: net.UDP_Socket,
+	endpoint: net.Endpoint,
+	connections:  map[net.Endpoint]^Connection,
+	global_packets: queue.Queue(^Packet),
+
+    name: string,
+    maxplayers: u16,
+    mode: string,
+}
+
+ServerInfo :: struct {
+    name: string,
+    maxplayers: u16,
+    mode: string
+}
+
 initialized_server: bool = false
 server: ^Server
 
-server_handle_packet :: proc(server: ^Server, packet: Packet, conn: ^Connection) {
-    console.log("called server_handle_packet")
-    messages:= decode_streamed_payload(packet.data)
-    for msg in messages {
-        console.log("Message type: ", msg.message_type)
-        #partial switch msg.message_type {
-            case .Chat:
-                console.log("Chat: ", string(msg.data))
-        }
-            
-    }
-}
-
 server_listen :: proc() {
 	if server == nil {
-		server = create_server(7777)
+		server = create_server(26000)
 	}
 
 	packet, from, err := receive_packet(server.socket)
@@ -56,25 +60,10 @@ server_listen :: proc() {
     for _,conn in server.connections {
         resend_unacked_packets(conn, server.socket, 0.3)
     }
-	server_handle_packet(server, packet, conn)
-}
-
-server_talk :: proc(msg: string, to: net.Endpoint) {
-    if server == nil {
-        server = create_server(7777)
+	messages:= decode_streamed_payload(packet.data, conn)
+    for msg in messages {
+        server_handle_message(server, msg)
     }
-    conn := server_establish_connection(server, to)
-    packet := Packet {
-        header = Packet_Header {
-            sequence = conn.send_sequence,
-            ack = conn.recv_sequence,
-            ack_bits = generate_ack_bits(conn),
-            version = version,
-            flags = Packet_Type.Reliable,
-        },
-        data = nil,
-    }
-    send_reliable_packet(server.socket, packet, conn)
 }
 
 server_broadcast_reliable :: proc(server: ^Server, payload: [dynamic]u8) {
@@ -121,16 +110,10 @@ server_establish_connection :: proc(server: ^Server, from: net.Endpoint) -> ^Con
     return conn
 }
 
-Server :: struct {
-	socket: net.UDP_Socket,
-	endpoint: net.Endpoint,
-	connections:  map[net.Endpoint]^Connection,
-	global_packets: queue.Queue(^Packet),
-}
 
 // Server Creation
 create_server :: proc(port: int) -> ^Server {
-    address := net.IP4_Loopback // or net.IP4_Any for LAN games
+    address := net.IP4_Any // or net.IP4_Any for LAN games
     endpoint := new(net.Endpoint)
     endpoint.address = address
     endpoint.port = port
@@ -139,6 +122,7 @@ create_server :: proc(port: int) -> ^Server {
     assert(err == nil)
 
     net.set_blocking(socket, false)
+    net.set_option(socket, .Broadcast, true)
 
     console.log("Listening on: ", endpoint)
 
