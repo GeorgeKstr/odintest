@@ -7,6 +7,16 @@ import rl "vendor:raylib"
 
 initialized_client: bool = false
 client: ^Client
+Client :: struct {
+    socket: net.UDP_Socket,       // Local socket for sending/receiving
+    server_endpoint: net.Endpoint,// IP/port of the server
+    connection: ^Connection,       // Reliable connection tracking (seq, ack, etc.)
+    username: string,
+
+    connected: bool,
+    last_received: f64,
+    last_sent: f64,
+}
 
 client_listen :: proc() {
 	if client == nil {
@@ -52,18 +62,10 @@ init_client :: proc() {
     client = create_client(endpoint.address, endpoint.port)
 }
 
-Client :: struct {
-    socket: net.UDP_Socket,       // Local socket for sending/receiving
-    server_endpoint: net.Endpoint,// IP/port of the server
-    connection: ^Connection,       // Reliable connection tracking (seq, ack, etc.)
-
-    connected: bool,
-    last_received: f64,
-    last_sent: f64,
-}
 
 
 client_establish_connection :: proc(client: ^Client, from: net.Endpoint) -> ^Connection {
+    client.server_endpoint = from
     conn := client.connection
     if conn == nil {
         client.connection = create_connection(from)
@@ -135,5 +137,5 @@ discover_servers :: proc(address: string) {
     }
     console.log("Pinging local network for servers...", broadcast_endpoint)
     conn2 := client_establish_connection(client, broadcast_endpoint)
-    send_reliable_packet(client.socket, packet, conn2)
+    send_packet_reliable(client.socket, packet, conn2)
 }

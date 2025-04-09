@@ -16,6 +16,7 @@ shared_key: string = "SECRET_KEY_XOR"
 Connection :: struct {
     socket: net.UDP_Socket,
     peer: net.Endpoint,
+    username: string,
 
     send_sequence: u16,
     recv_sequence: u16,
@@ -46,7 +47,7 @@ send_packet :: proc(sock: net.UDP_Socket, packet: Packet, to: net.Endpoint) {
 	_, err := net.send_any(sock, encrypted, to)
 }
 
-send_reliable_packet :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connection) {
+send_packet_reliable :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connection) {
     header := Packet_Header{
         version = version,
         flags = .Reliable,

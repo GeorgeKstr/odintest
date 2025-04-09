@@ -19,6 +19,7 @@ Server :: struct {
 
 ServerInfo :: struct {
     name: string,
+    players: u16,
     maxplayers: u16,
     mode: string
 }
@@ -79,7 +80,7 @@ server_broadcast_reliable :: proc(server: ^Server, payload: [dynamic]u8) {
             },
             data = payload,
         }
-        send_reliable_packet(server.socket, packet, conn)
+        send_packet_reliable(server.socket, packet, conn)
     }
 }
 
@@ -103,7 +104,6 @@ server_establish_connection :: proc(server: ^Server, from: net.Endpoint) -> ^Con
     conn := server.connections[from]
     if conn == nil {
         conn = create_connection(from)
-        server.connections[from] = conn
         console.log("New connection: [", from, "]")
     }
     conn.connected = true
@@ -129,5 +129,6 @@ create_server :: proc(port: int) -> ^Server {
     result := new(Server)
     result.socket = socket
     result.endpoint = endpoint^
+    result.maxplayers = 0
     return result
 }

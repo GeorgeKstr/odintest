@@ -8,9 +8,10 @@ import "../console"
 
 Message_Type:: enum u8 {
 	Discover,
-	Serverinfo,
 	Connect,
 	Disconnect,
+	Serverinfo,
+	Error,
 	Chat,
 	Input,
 	Update,
@@ -92,4 +93,18 @@ read_u16 :: proc(buf: ^[]u8) -> u16 {
 	result := (u16((buf^)[0]) << 8) | u16((buf^)[1])
 	buf^ = (buf^)[2 : ]
 	return result
+}
+
+send_message_reliable :: proc(socket: net.UDP_Socket, conn: ^Connection, msg: Message) {
+	packet := Packet{
+		header = Packet_Header{
+			sequence = conn.send_sequence,
+			ack = conn.recv_sequence,
+			ack_bits = generate_ack_bits(conn),
+			version = version,
+			flags = Packet_Type.Reliable,
+		},
+		data = build_streamed_payload([]Message{msg}),
+	}
+	send_packet_reliable(socket, packet, conn)
 }
