@@ -12,7 +12,6 @@ import rl "vendor:raylib"
 version: u8 = 0x42
 shared_key: string = "SECRET_KEY_XOR"
 
-
 Connection :: struct {
     socket: net.UDP_Socket,
     peer: net.Endpoint,
@@ -42,12 +41,32 @@ create_connection :: proc(from: net.Endpoint) -> ^Connection {
 	return n
 }
 
-send_packet :: proc(sock: net.UDP_Socket, packet: Packet, to: net.Endpoint) {
-	encrypted := encrypt(packet)
-	_, err := net.send_any(sock, encrypted, to)
+send_packet :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connection) {
+	if conn == local_client {
+        append(&to_local_client, packet)
+        fmt.println("Wrote to local client: ", packet)
+        return
+    } else if conn == local_server {
+        append(&to_local_server, packet)
+        fmt.println("Wrote to local server: ", packet)
+        return
+    }
+    encrypted := encrypt(packet)
+	_, err := net.send_any(sock, encrypted, conn.peer)
+    delete(packet.data)
 }
 
 send_packet_reliable :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connection) {
+    fmt.println("send_packet_reliable")
+    if conn == local_client {
+        append(&to_local_client, packet)
+        fmt.println("Wrote to local client")
+        return
+    } else if conn == local_server {
+        append(&to_local_server, packet)
+        fmt.println("Wrote to local server: ", packet)
+        return
+    }
     header := Packet_Header{
         version = version,
         flags = .Reliable,
@@ -70,7 +89,7 @@ send_packet_reliable :: proc(sock: net.UDP_Socket, packet: Packet, conn: ^Connec
 }
 
 receive_packet :: proc(sock: net.UDP_Socket) -> (Packet, net.Endpoint, net.Network_Error) {
-	buf: [1024]u8
+    buf: [1024]u8
 	n, from, err := net.recv_udp(sock, buf[:])
 	if err != nil || n == 0 {
 		return Packet{}, from, err

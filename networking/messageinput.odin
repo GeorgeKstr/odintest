@@ -10,21 +10,26 @@ import rl "vendor:raylib"
 
 server_handle_message :: proc(server: ^Server, message: Message) {
     msg := message
+    fmt.println("server handling message")
     if msg.sender == nil {
         return
     }
+    fmt.println("server still handling message")
     if msg.message_type == .Connect {
         username:= read_string(&msg.data)
         if u16(len(server.connections)) >= server.maxplayers {
             console.log("Could not accept connection from ", username, ", reason: Server is full")
+            replydata:[dynamic]u8
+            write_string(&replydata, "Server is full")
             send_message_reliable(server.socket, message.sender, Message{
                 message_type= .Disconnect,
                 sender= message.sender,
-                data= write_string("Server is full")[:],
+                data= replydata[:],
             })
+            delete(replydata)
             return
         } else {
-            console.log("received connection request from ", msg.sender.peer)
+            console.log("received connection request from ", username, ", address: ", msg.sender.peer)
             server.connections[msg.sender.peer] = message.sender
             server.connections[msg.sender.peer].username = username
             message := Message{
@@ -41,17 +46,19 @@ server_handle_message :: proc(server: ^Server, message: Message) {
     #partial switch msg.message_type {
         case .Discover:
             replydata : [dynamic]u8
-            append(&replydata, ..write_string(server.name)[:])
-            append(&replydata, ..write_u16(u16(len(server.connections)))[:])
-            append(&replydata, ..write_u16(server.maxplayers)[:])
-            append(&replydata, ..write_string(server.mode)[:])
+            write_string(&replydata,server.name)
+            write_u16(&replydata, u16(len(server.connections)))
+            write_u16(&replydata, server.maxplayers)
+            write_string(&replydata, server.mode)
             reply := Message{
                 message_type= .Serverinfo,
                 sender= message.sender,
                 data= replydata[:],
             }
-            send_message_reliable(server.socket, message.sender, reply)  
+            send_message_reliable(server.socket, message.sender, reply)
+            delete(replydata)  
         case .Chat:
+            fmt.println("Server received chat message")
             payload := build_streamed_payload([]Message{
                 message,
             })
@@ -81,6 +88,7 @@ client_handle_message :: proc(client: ^Client, message: Message) {
         case .Chat:
             username:= read_string(&msg.data)
             text:=read_string(&msg.data)
+            mem.copy(&text, &text, len(text))
             console.log("[", username, "]: ", text)
         case .Disconnect:
             w := ui.createWindow(rl.Vector2{0.5, 0.5}, rl.Vector2{400, 200}, "Disconnected")
@@ -89,9 +97,9 @@ client_handle_message :: proc(client: ^Client, message: Message) {
             label.args[ui.carg.CENTERED] = true
             ui.add_component(w, label)
             btn := ui.create_button("button1", "OK", rl.Vector2{-5.100, 0}, rl.Vector2{80, 40})
+            btn.action = ui.button_close_window
             ui.add_component(w, btn)
             initialized_client = false
-
     }
     
 }

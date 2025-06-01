@@ -53,5 +53,3 @@ draw_text :: proc(text: cstring, font: rl.Font, pos: rl.Vector2, color: rl.Color
     rl.DrawTextEx(font, text, pos, f32(font.baseSize), 0, rl.Color{color.r, color.g, color.b, u8(alpha * 255)})
 }
 
-
-

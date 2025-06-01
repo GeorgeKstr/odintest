@@ -4,9 +4,10 @@ import rl "vendor:raylib"
 import "../defs"
 import "core:fmt"
 import "core:strconv"
+import "core:mem"
+import "core:strings"
 ui_font : rl.Font
-windows_head: ^window = nil
-windows_tail: ^window = nil
+windows: [dynamic] ^window
 hover_window: ^window = nil
 mousepos: rl.Vector2
 cursor_enabled: bool=true
@@ -24,6 +25,7 @@ closesize :: 0.6
 windows_color :: rl.Color{25, 25, 25, 150}
 scrollbar_background :: rl.Color{50, 50, 50, 255}
 scrollbar_color :: rl.Color{100, 100, 100, 255}
+
 
 moveMode :: enum {
     MOVE_NONE,
@@ -68,17 +70,16 @@ window :: struct {
     size: rl.Vector2,
     minsize: rl.Vector2,
     name: cstring,
+    previous: ^window,
     flags: [len(windowFlags)]bool,
     scrollable: bool,
     scroll: f32,
     content_origin: rl.Vector2,
     content_size: rl.Vector2,
-    components: ^component,
-    next: ^window,
-    previous: ^window,
+    components: [dynamic] ^component,
     render: proc(self: ^window),
     input: proc(self: ^window, user_action: user_action, pressed: bool) -> bool,
-    args: map[string]defs.data_union,
+    args: map[string]^defs.data_union,
 }
 
 setScreenValues :: proc(vwidth: f32, vheight: f32) {
@@ -123,93 +124,58 @@ drawScrollbar :: proc(w: ^window) {
 
 createWindow :: proc(pos: rl.Vector2, size: rl.Vector2, name: cstring) -> ^window {
     w := new(window)
+    defer free(w)
     w.origin = pos
     w.size = size
     w.minsize = size
     w.name = name
-    if windows_head == nil {
-        windows_head = w
-        windows_tail = w
-    } else {
-        windows_tail.next = w
-        w.previous = windows_tail
-        windows_tail = w
-    }
-    makeHead(w)
+    append(&windows, w)
     return w
+}
+
+makeHead :: proc(w: ^window) {
+    for w2, i in windows {
+        if w2 == w {
+            ordered_remove(&windows, i)
+            append(&windows, w)
+            return
+        }
+    }
 }
 
 closeWindow :: proc(w: ^window) {
     if w == nil {
         return // Already closed or invalid
     }
-    
-    // Remove all components safely
-    c := w.components
-    for c != nil {
-        next_c := c.next
-        c.next = nil
-        c.previous = nil
-        free(c) // Free each component
-        c = next_c
-    }
-    w.components = nil
 
-    // Remove from window list
-    if windows_head == w {
-        windows_head = w.next
-    }
-    if windows_tail == w {
-        windows_tail = w.previous
-    }
-    if w.next != nil {
-        w.next.previous = w.previous
-    }
-    if w.previous != nil {
-        w.previous.next = w.next
-    }
-    
-    fmt.println("closing window", w.name)
-
-    w.next = nil
-    w.previous = nil
-    if console_window == w {
+    if w == console_window {
+        for c in w.components {
+            c.entries = nil
+        }
         console_window = nil
     }
-    free(w)  // Free window memory
-    fmt.println("closed window")
-}
+    
+    // Remove all components safely
+    for &c in w.components {
+        remove_component(c)
+    }
+    delete(w.components)
 
-
-makeHead :: proc(w: ^window) {
-    if w==nil {
-        return
+    for w2, i in windows {
+        if w2 == w {
+            ordered_remove(&windows, i)
+            fmt.println("Window closed: ", w.name)
+            return
+        }
     }
-    if windows_head == w {
-        return
-    }
-    if w.previous != nil {
-        w.previous.next = w.next
-    }
-    if w.next != nil {
-        w.next.previous = w.previous
-    }
-    w.next = windows_head
-    if(windows_head != nil){
-        windows_head.previous = w
-    }
-    w.previous = nil
-    windows_head = w
-    w2 := w
-    for w2.next != nil {
-        w2 = w2.next
-    }
-    windows_tail = w2
 }
 
 calculateScroll :: proc(w: ^window) -> f32 {
+    if w == nil || w.components == nil{
+        return 0
+    }
     content_start:=rl.Vector2{w.content_origin.x, 0}
-    for c := w.components; c != nil; c = c.next {
+    for c in w.components {
         c.content_origin = content_start
         horizontal_start := content_start
         if(c.stack==.GHOST && c.previous!=nil){
@@ -242,12 +208,15 @@ calculateScroll :: proc(w: ^window) -> f32 {
 }
 
 drawWindows :: proc() {
-    if windows_head == nil {
+    if len(windows) == 0 {
+        return
+    }
+    w := windows[len(windows)-1]
+    if w == nil {
         return
     }
     setScreenValues(f32(rl.GetScreenWidth()), f32(rl.GetScreenHeight()))
     hover_window=nil
-    w := windows_head
     if move_mode == .MOVE_MOVE {
         w.origin = mousepos + move_offset
     } else if move_mode == .MOVE_RESIZE_RIGHT {
@@ -263,8 +232,13 @@ drawWindows :: proc() {
         w.origin.x = neworigin
         w.size.y = max(w.minsize.y, min(screensize.y - w.origin.y, - w.origin.y + mousepos.y - move_offset.y))
     }
-    w = windows_tail
-    for w != nil {
+    
+    for w, i in windows {
+        if i<len(windows)-1 {
+            w.previous = windows[i+1]
+        } else {
+            w.previous = nil
+        }
         walpha = w.previous == nil ? 1.0 : 0.5
         if w.flags[windowFlags.W_RELATIVETOSCREEN] {
             w.content_size.x = screensize.x*0.01 * w.size.x
@@ -324,7 +298,9 @@ drawWindows :: proc() {
             w.render(w)
         }
         horizontal_start := content_start
-        for c := w.components; c != nil; c = c.next {
+        previous : ^component = nil
+        for c in w.components {
+            c.previous = previous
             c.content_origin = content_start
             if(c.stack==.GHOST && c.previous!=nil){
                 c.content_origin.y = horizontal_start.y
@@ -359,14 +335,26 @@ drawWindows :: proc() {
             if c.stack != .GHOST && c.stack != .HORIZONTAL {
                 content_start.y += c.content_size.y+c.margin.w+c.margin.y
             }
+            previous = c
         }
         w.content_size.x = previousX
         if !(w.flags[windowFlags.W_NORESIZE]) {
             draw_texture_centered("assets/ui/win_scale_l.png", rl.Vector2{w.content_origin.x, w.content_origin.y + w.content_size.y}, rl.Vector2{headersize, headersize}, walpha)
             draw_texture_centered("assets/ui/win_scale_r.png", rl.Vector2{w.content_origin.x + w.content_size.x, w.content_origin.y + w.content_size.y}, rl.Vector2{headersize, headersize}, walpha)
         }
-        w = w.previous
     }
 }
 
+close_all :: proc() {
+    fmt.println("closing all windows")
+    remove_component(history)
+    remove_component(command_history)
+    for w in windows {
+        closeWindow(w)
+    }
+    delete(windows)
+}
 
+ui_init :: proc() {
+    ui_console_init()
+}

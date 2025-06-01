@@ -16,8 +16,9 @@ parse_file_for_cvars :: proc(filepath: string) {
 	defer delete(data, context.allocator)
 
 	it := string(data)
-	    for line in strings.split_lines_iterator(&it) {
-        data := strings.split(line, " ")
+	lines := strings.split(it, "\n", context.temp_allocator)
+	for line in lines {
+        data := strings.split(line, " ", context.temp_allocator)
 		if len(data) >1 {
 			if isCommand(data[0]) {
 				executeCommand(line)
@@ -26,4 +27,5 @@ parse_file_for_cvars :: proc(filepath: string) {
 			}
 		}
 	}
+	free_all(context.temp_allocator)
 }

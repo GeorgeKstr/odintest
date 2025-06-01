@@ -3,7 +3,7 @@ package ui
 import rl "vendor:raylib"
 import "core:fmt"
 import "../defs"
-import sto "core:strings"
+import "core:strings"
 
 button_height :: 30
 
@@ -19,8 +19,8 @@ button_render::proc(self: ^component){
     if !ok {
         text = ""
     }
-    textsize := rl.MeasureTextEx(ui_font, sto.clone_to_cstring(text), f32(defs.header_fontsize), 0)
-    draw_text(sto.clone_to_cstring(text), ui_font, self.content_origin + rl.Vector2{(self.content_size.x - textsize.x) / 2, (self.content_size.y - textsize.y) / 2}, rl.RAYWHITE, 1.0)
+    textsize := rl.MeasureTextEx(ui_font, strings.clone_to_cstring(text, context.temp_allocator), f32(defs.header_fontsize), 0)
+    draw_text(strings.clone_to_cstring(text, context.temp_allocator), ui_font, self.content_origin + rl.Vector2{(self.content_size.x - textsize.x) / 2, (self.content_size.y - textsize.y) / 2}, rl.RAYWHITE, 1.0)
 }
 
 button_input::proc(self: ^component, action: user_action, pressed: bool) -> bool{
@@ -41,4 +41,11 @@ create_button::proc(name: string, text: string, origin: rl.Vector2, size: rl.Vec
     c.input = button_input
     c.args[carg.TEXT] = text
     return c
+}
+
+button_close_window :: proc(self : ^component, args:defs.data_union){
+    if self.container != nil {
+        closeWindow(self.container)
+    }
+    
 }

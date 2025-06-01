@@ -3,7 +3,7 @@ package ui
 import rl "vendor:raylib"
 import "core:fmt"
 import "../defs"
-import sto "core:strings"
+import "core:strings"
 
 label_render::proc(self: ^component){
     rgb: rl.Color
@@ -25,11 +25,11 @@ label_render::proc(self: ^component){
             rgb = rl.RAYWHITE
         }
     }
-    textsize := rl.MeasureTextEx(ui_font, sto.clone_to_cstring(text), f32(defs.header_fontsize), 0)
+    textsize := rl.MeasureTextEx(ui_font, strings.clone_to_cstring(text, context.temp_allocator), f32(defs.header_fontsize), 0)
     if centered {
-        draw_text(sto.clone_to_cstring(text), ui_font, self.content_origin + rl.Vector2{(self.content_size.x - textsize.x) / 2, (self.content_size.y - textsize.y) / 2}, rgb, 1.0)
+        draw_text(strings.clone_to_cstring(text, context.temp_allocator), ui_font, self.content_origin + rl.Vector2{(self.content_size.x - textsize.x) / 2, (self.content_size.y - textsize.y) / 2}, rgb, 1.0)
     } else {
-        draw_text(sto.clone_to_cstring(text), ui_font, self.content_origin + rl.Vector2{0, (self.content_size.y - textsize.y) / 2}, rgb, 1.0)
+        draw_text(strings.clone_to_cstring(text, context.temp_allocator), ui_font, self.content_origin + rl.Vector2{0, (self.content_size.y - textsize.y) / 2}, rgb, 1.0)
     }
 }
 
@@ -56,7 +56,7 @@ create_label_autowidth::proc(name: string, text: string, origin: rl.Vector2, siz
     c.id = name
     c.origin = origin
     c.size = size
-    textsize := rl.MeasureTextEx(ui_font, sto.clone_to_cstring(text), f32(defs.header_fontsize), 0)
+    textsize := rl.MeasureTextEx(ui_font, strings.clone_to_cstring(text, context.temp_allocator), f32(defs.header_fontsize), 0)
     c.size.x = textsize.x
     c.render = label_render
     c.input = label_input

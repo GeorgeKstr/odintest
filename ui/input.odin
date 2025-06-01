@@ -4,11 +4,14 @@ import "core:fmt"
 import "../console"
 
 handleInput := proc(keyname: string, action: user_action, pressed: bool) {
-    w := windows_head
     if rl.IsKeyPressed(.GRAVE) {
-        create_console()
+        ui_console_open()
         return
     }
+    if len(windows) == 0 {
+        return
+    }
+    w := windows[len(windows)-1]
     if cursor_enabled {
         if rl.IsKeyPressed(.K) {
             rl.SetWindowSize(800, 600)
@@ -46,7 +49,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                             move_mode=.MOVE_RESIZE_RIGHT
                         } else {
                             focused_component = nil
-                            for c:=w.components;c!=nil;c=c.next{
+                            for c in w.components {
                                 if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
                                     focused_component = c
                                     c.input(c, action, pressed)
@@ -56,7 +59,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
                         }
                     } else if right {
                         focused_component = nil
-                        for c:=w.components;c!=nil;c=c.next{
+                        for c in w.components {
                             if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
                                 focused_component = c
                                 c.input(c, action, pressed)
@@ -73,7 +76,7 @@ handleInput := proc(keyname: string, action: user_action, pressed: bool) {
             }
         } else if rl.GetMouseWheelMove() != 0 && hover_window!=nil {
             focused_component = nil
-            for c:=w.components;c!=nil;c=c.next{
+            for c in hover_window.components {
                 if(isPointInsideBox(mousepos, c.content_origin, c.content_size)){
                     focused_component = c
                     if c.args[carg.SCROLL] != nil && c.args[carg.SCROLL].(bool){

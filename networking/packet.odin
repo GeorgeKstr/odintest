@@ -85,11 +85,15 @@ decrypt :: proc(buf: [1024]u8) -> Packet {
 
 
 handle_ack :: proc(conn: ^Connection, ack: u16, ack_bits: u32) {
+	pkt := conn.sent_packets[ack]
+	delete(pkt.data)
     delete_key(&conn.sent_packets, ack)
 
     for i: u32; i < 32; i += 1 {
         if (ack_bits & (1 << i)) != 0 {
             seq := ack - cast(u16)(i + 1)
+			pkt = conn.sent_packets[seq]
+			delete(pkt.data)
             delete_key(&conn.sent_packets, seq)
         }
     }

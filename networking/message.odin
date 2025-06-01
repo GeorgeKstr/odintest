@@ -66,13 +66,11 @@ decode_streamed_payload :: proc(buf: [dynamic]u8, conn: ^Connection) -> [dynamic
 	return messages
 }
 
-write_string :: proc(str: string) -> []u8 {
-	out : [dynamic]u8
+write_string :: proc(out: ^[dynamic]u8, str: string) {
 	length := len(str)
-	append(&out, cast(u8)(length >> 8))
-	append(&out, cast(u8)(length & 0xFF))
-	append(&out, ..transmute([]u8)str[:])
-	return out[:]
+	append(out, cast(u8)(length >> 8))
+	append(out, cast(u8)(length & 0xFF))
+	append(out, ..transmute([]u8)str[:])
 }
 
 read_string :: proc(buf: ^[]u8) -> string {
@@ -82,11 +80,9 @@ read_string :: proc(buf: ^[]u8) -> string {
 	return result
 }
 
-write_u16 :: proc(num: u16) -> []u8 {
-	out : [dynamic]u8
-	append(&out, cast(u8)(num >> 8))
-	append(&out, cast(u8)(num & 0xFF))
-	return out[:]
+write_u16 :: proc(out: ^[dynamic]u8, num: u16) {
+	append(out, cast(u8)(num >> 8))
+	append(out, cast(u8)(num & 0xFF))
 }
 
 read_u16 :: proc(buf: ^[]u8) -> u16 {
@@ -97,14 +93,17 @@ read_u16 :: proc(buf: ^[]u8) -> u16 {
 
 send_message_reliable :: proc(socket: net.UDP_Socket, conn: ^Connection, msg: Message) {
 	packet := Packet{
-		header = Packet_Header{
+		data = build_streamed_payload([]Message{msg}),
+	}
+	if true {
+		packet.header = Packet_Header{
 			sequence = conn.send_sequence,
 			ack = conn.recv_sequence,
 			ack_bits = generate_ack_bits(conn),
 			version = version,
 			flags = Packet_Type.Reliable,
-		},
-		data = build_streamed_payload([]Message{msg}),
+		}
 	}
 	send_packet_reliable(socket, packet, conn)
+	delete(packet.data)
 }
